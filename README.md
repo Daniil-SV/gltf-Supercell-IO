@@ -10,8 +10,12 @@ Introduction
 ------------
 Custom extension for Official Khronos Group Blender [glTF](https://www.khronos.org/gltf/) 2.0 importer and exporter
 
-The goal of this project is to add support for Supercell glTF files to Blender using features of official Blender glTF importer
+The goal of this project is to add support for Supercell glTF files to Blender using features of official Blender glTF importer  
 Essentially, it is a reimagined version of [Flat Converter](https://github.com/Daniil-SV/Supercell-Flat-Converter), but more convenient and accessible
+
+Requirements
+------------
+Extension works on Blender 4.5+ *only*
 
 Installation
 ------------
@@ -19,5 +23,5 @@ WIP
 
 What is currently supported
 ------------
-Currently, basic file import and mesh import are supported
+Currently, basic file import and mesh import are supported  
 TODO: Animations and shaders import
