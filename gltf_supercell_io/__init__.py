@@ -25,6 +25,7 @@ bl_info = {
 
 from .importer.ui import glTFSupercellImporterProperties
 from .importer.importer_patch import patch_importer
+from .com.shader.pressets import ShaderPreset
 
 # Initialization functions for glTF importer extension
 from .importer.ui import draw_import

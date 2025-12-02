@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import UILayout, Context
-from bpy.props import BoolProperty, FloatProperty
+from bpy.props import BoolProperty, EnumProperty
+from ..com.shader.pressets import ShaderPresetType
 from ..com import glTF_extension_name
 
 
@@ -14,6 +15,21 @@ class glTFSupercellImporterProperties(bpy.types.PropertyGroup):
         description='Sets some importer settings to better values for Supercell models',
         default=True
     )
+    
+    shader_preset: EnumProperty(
+        name="Shader Preset",
+        description="Select shader preset for imported material",
+        items=[
+            (str(ShaderPresetType.UNLIT), "Unlit", "Use unlit materials"),
+            (str(ShaderPresetType.BRAWL_STARS), "Brawl Stars", "Use Brawl Stars materials"),
+        ],
+        default=str(ShaderPresetType.UNLIT)
+    )
+    
+    adjust_colorspace: BoolProperty(
+        description='Configures color space required for correct display of SC shaders',
+        default=True
+    )
 
 def draw_import(context: Context, layout: UILayout):
     header, body = layout.panel(glTF_extension_name, default_closed=False)
@@ -23,3 +39,6 @@ def draw_import(context: Context, layout: UILayout):
     props = bpy.context.scene.glTFSupercellImporterProperties
     if body != None:
         body.prop(props, 'single_skeleton', text="Import as single skeleton")
+        body.prop(props, 'better_settings', text="Use custom glTF importer settings")
+        body.prop(props, 'shader_preset', text="Material preset")
+        body.prop(props, 'adjust_colorspace', text="Adjust color space")

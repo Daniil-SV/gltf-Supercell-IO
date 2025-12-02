@@ -1,14 +1,20 @@
 import bpy
+
 from ..com import glTF_extension_name, glTF_material_extension_name
 from ..com.odin.constants import OdinAttributeFormat, OdinAttributeType
 from ..com.odin.attribute import OdinAttribute
+from ..com.materials import ScShaderMaterial
+
+from ..com.shader.pressets import ShaderPreset, ShaderPresetType
+from ..com.shader.unlit import UnlitPreset
+
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter, ImportError
 from io_scene_gltf2.io.com.gltf2_io import Accessor, Material, Node, Mesh, MeshPrimitive, Scene, Skin
 from io_scene_gltf2.blender.imp.vnode import VNode
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+
 from typing import List
-from watchpoints import watch
 import numpy as np
 
 
@@ -16,7 +22,12 @@ class glTF2ImportUserExtension:
     def __init__(self):
         self.properties = bpy.context.scene.glTFSupercellImporterProperties
         self.extensions = [
-            Extension(name=glTF_extension_name, extension={}, required=True)]
+            # Odin extension with custom meshes and animations store method
+            Extension(name=glTF_extension_name, extension={}, required=True),
+            
+            # Custom materials
+            Extension(name=glTF_material_extension_name, extension={}, required=False)
+        ]
         
     def valid_gltf(self, gltf: glTFImporter):
         required = gltf.data.extensions_required or []
@@ -55,7 +66,7 @@ class glTF2ImportUserExtension:
             return
 
         gltf.data.materials = [
-            Material.from_dict({"extensions": {glTF_extension_name: material}}) for material in materials
+            Material.from_dict({"extensions": {glTF_material_extension_name: material}}) for material in materials
         ]
 
     def process_nodes_extension(self, gltf: glTFImporter):
@@ -258,3 +269,52 @@ class glTF2ImportUserExtension:
         primitives: List[MeshPrimitive] = pymesh.primitives or []
         for primitive in primitives:
             self.decode_primitive(gltf, primitive)
+
+    def gather_import_material_before_hook(self, gltf_material: Material, vertex_color, gltf: glTFImporter):
+        if (not self.valid_gltf(gltf)):
+            return
+        
+        extensions = gltf_material.extensions = gltf_material.extensions or {}
+        descriptor: dict = extensions.get(glTF_material_extension_name)
+        if (descriptor is None):
+            return
+        
+        material = ScShaderMaterial()
+        material.from_dict(gltf, descriptor)
+        extensions[glTF_material_extension_name] = material
+        gltf_material.name = material.name
+        
+    def gather_import_material_after_hook(self, gltf_material: Material, vertex_color, blender_mat: bpy.types.Material, gltf: glTFImporter):
+        if (not self.valid_gltf(gltf)):
+            return
+        
+        extensions = gltf_material.extensions or {}
+        material: ScShaderMaterial = extensions.get(glTF_material_extension_name)
+        if (material is None):
+            return
+        
+        preset: ShaderPreset = None
+        match(self.properties.shader_preset):
+            case ShaderPresetType.UNLIT:
+                preset = UnlitPreset(material, blender_mat)
+            case _:
+                raise NotImplementedError()
+        
+        # Cleanup material from glTF fallback and prepare for our own processing
+        gltf_material.pbr_metallic_roughness.blender_nodetree = None
+        gltf_material.pbr_metallic_roughness.blender_mat = None
+        if not blender_mat.node_tree:
+            blender_mat.use_nodes = True
+            
+        tree = blender_mat.node_tree
+        tree.nodes.clear()
+        
+        # Selected preset creation
+        preset.create_material()
+        
+    def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene: bpy.types.Scene, gltf):
+        if (not self.valid_gltf(gltf)):
+            return
+        
+        if (self.properties.adjust_colorspace):
+            blender_scene.view_settings.view_transform = "Raw"
