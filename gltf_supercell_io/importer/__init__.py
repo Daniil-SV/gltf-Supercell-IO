@@ -5,8 +5,9 @@ from ..com.odin.constants import OdinAttributeFormat, OdinAttributeType
 from ..com.odin.attribute import OdinAttribute
 from ..com.materials import ScShaderMaterial
 
-from ..com.shader.pressets import ShaderPreset, ShaderPresetType
+from ..com.shader.builder import ShaderPresetType
 from ..com.shader.unlit import UnlitPreset
+from ..com.shader.brawlStarsLegacy import BrawlStarsLegacy
 
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter, ImportError
@@ -293,10 +294,13 @@ class glTF2ImportUserExtension:
         if (material is None):
             return
         
-        preset: ShaderPreset = None
+        preset = None
         match(self.properties.shader_preset):
             case ShaderPresetType.UNLIT:
-                preset = UnlitPreset(material, blender_mat)
+                preset = UnlitPreset
+            
+            case ShaderPresetType.BRAWL_STARS_LEGACY:
+                preset = BrawlStarsLegacy
             case _:
                 raise NotImplementedError()
         
@@ -309,8 +313,13 @@ class glTF2ImportUserExtension:
         tree = blender_mat.node_tree
         tree.nodes.clear()
         
+        preset_instance = preset(material, blender_mat)
+        
         # Selected preset creation
-        preset.create_material()
+        preset_instance.create_material()
+        
+        # Marking shader as valid SupercellIO shader
+        preset_instance.shader["$SupercellIO"] = self.properties.shader_preset
         
     def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene: bpy.types.Scene, gltf):
         if (not self.valid_gltf(gltf)):

@@ -1,6 +1,6 @@
-from .pressets import ShaderPreset
+from .builder import ShaderBuilder
 
-class UnlitPreset(ShaderPreset):
+class UnlitPreset(ShaderBuilder):
     def create_shader(self):
         self.shader = self.instantiate_shader("ScUnlitShader", "Unlit Shader")
 

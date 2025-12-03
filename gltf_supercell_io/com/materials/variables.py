@@ -34,7 +34,7 @@ class ShaderTextureProperty(ShaderProperty):
         if ("#" in path):
             path, keywords = path.split("#")
             self.texture_path = path
-            self.keywords = keywords.split("+")
+            self.keywords = keywords.split("+") or []
             
     @property
     def value(self) -> any:
