@@ -26,8 +26,10 @@ if TYPE_CHECKING:
 
 class CommonImporter(glTF2BaseImporterComponent):
     def process_accessors(self, gltf: "glTFImporter"):
-        """Supercell uses special component types for some accessors to optimize gpu memory usage,
-        which is not standard and needs to be converted to normal here"""
+        """
+        Supercell uses special component types for some accessors to optimize gpu memory usage,
+        which is not standard and needs to be converted to normal here
+        """
         # Exclusive Accessor Component Types
         # 1 - Float Vector 3
         # 2 - Float Vector 4
@@ -38,8 +40,11 @@ class CommonImporter(glTF2BaseImporterComponent):
             accessor.component_type = accessor.component_type & 0x0000FFFF
 
     def move_materials(self, gltf: "glTFImporter"):
-        """Supercell stores their materials in extensions,
-        so we need to move them to the main materials list if there is a need"""
+        """
+        Supercell stores their updated materials in odin extension,
+        and we need to move them to materials to simplify material handling
+        so we can parse it from single predictable place
+        """
         descriptor = self.get_extension(gltf)
         if descriptor is None:
             return
@@ -53,8 +58,11 @@ class CommonImporter(glTF2BaseImporterComponent):
             for material in materials
         ]
 
-    def process_nodes_extension(self, gltf: "glTFImporter"):
-        """Repairs gltf children relation indexing based on classic parent indexing stored in node extensions"""
+    def process_nodes(self, gltf: "glTFImporter"):
+        """
+        Repairs gltf children relation indexing based on classic parent indexing stored in node extensions
+        """
+        
         nodes: List[Node] = gltf.data.nodes or []
 
         childrens: dict[int, list[int]] = {}
@@ -80,7 +88,10 @@ class CommonImporter(glTF2BaseImporterComponent):
             nodes[idx].children = children
 
     def do_final_fixups(self, gltf: "glTFImporter"):
-        """Very often Supercell glTF files have missing fields that are required by the importer, this function adds them back"""
+        """
+        Very often Supercell glTF files have missing fields that are required by the importer, 
+        this function adds them back
+        """
 
         root_nodes = []
         nodes: List[Node] = gltf.data.nodes or []
@@ -121,6 +132,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         ):
             # Most of animations doesn't have actual skin
             # We should create placeholder one, so blender could process it properly
+            # not as empties
             if len(skins) == 0:
                 joints = [
                     i
@@ -168,9 +180,12 @@ class CommonImporter(glTF2BaseImporterComponent):
         gltf.import_settings["guess_original_bind_pose"] = False
 
     def move_animation(self, gltf: "glTFImporter"):
-        """Supercell also stores animations in the extension,
+        """
+        Supercell also stores animations in odin extension,
         so they also need to be moved to the animations for proper processing.
-        Only one animation per file is possible."""
+        Only one action per file is possible with odin
+        Even if source file contained multiple actions, they are combined to single animation definition
+        """
         descriptor = self.get_extension(gltf)
         if descriptor is None:
             return
@@ -191,7 +206,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         self.move_materials(gltf)
         self.move_animation(gltf)
 
-        self.process_nodes_extension(gltf)
+        self.process_nodes(gltf)
         self.do_final_fixups(gltf)
 
         if self.properties.better_settings:
