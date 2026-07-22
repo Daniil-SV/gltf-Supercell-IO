@@ -54,3 +54,4 @@ wheels = [
 #
 [permissions]
 files = "Import/export glTF from/to disk"
+network = "Asset browser"
