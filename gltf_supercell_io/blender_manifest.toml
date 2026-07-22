@@ -30,7 +30,6 @@ wheels = [
   "./wheels/flatbuffers-25.9.23-py2.py3-none-any.whl",
   "./wheels/neko_web_api_client-1.1.0-py3-none-any.whl",
   "./wheels/httpx-0.28.1-py3-none-any.whl",
-  "./wheels/attrs-26.1.0-py3-none-any.whl",
   "./wheels/httpcore-1.0.9-py3-none-any.whl",
   "./wheels/anyio-4.14.1-py3-none-any.whl",
   "./wheels/attrs-26.1.0-py3-none-any.whl",

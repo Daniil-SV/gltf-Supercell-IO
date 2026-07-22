@@ -124,3 +124,5 @@ def unregister():
     cleanup_temporary_files()
     stop_asset_worker()
     bpy.app.handlers.load_post.remove(shader_linkage_handler)
+    bpy.app.handlers.load_post.remove(refresh_handler)
+    bpy.app.timers.unregister(asset_browser_timer)

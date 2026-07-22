@@ -231,9 +231,10 @@ class ShaderImporter(ShaderUtils):
 
                 # Converting user texture using neko api
                 if extension in SUPPORTED_NEKO_EXTENSIONS:
-                    data = texture_loader.convert_user_texture(
-                        str(path), open(maybe_path, "rb").read()
-                    )
+                    with open(maybe_path, "rb") as file:
+                        data = texture_loader.convert_user_texture(
+                            str(path), file.read()
+                        )
 
                     if data is not None:
                         return self.load_texture_from_image(str(path), data)

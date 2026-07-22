@@ -88,7 +88,7 @@ class ASSETS_OT_import(bpy.types.Operator):
         # Getting item and creating temp path
         item = cast("AssetBrowserItem", props.assets[props.asset_index])
         filepath: Path = Path(tempdir) / hash / item.path
-        if not os.path.exists(item.path):
+        if not os.path.exists(filepath):
             # Downloading file
             data = download_asset_detailed(
                 AssetRequest(

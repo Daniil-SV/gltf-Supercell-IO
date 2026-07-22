@@ -5,6 +5,7 @@ import requests
 
 ASSETS_ENDPOINT_URL = "https://files.sc-workshop.com/asset-request/"
 SERVERS_ENDPOINT_URL = "https://files.sc-workshop.com/servers/"
+TIMEOUT = 5  # seconds
 
 
 class AssetRequestType(StrEnum):
@@ -97,7 +98,7 @@ def list_assets(data: AssetRequest) -> list[str] | None:
     params: dict[str, Any] = {"type": AssetRequestType.List.value} | data.params
 
     try:
-        response = requests.get(ASSETS_ENDPOINT_URL, params)
+        response = requests.get(ASSETS_ENDPOINT_URL, params, timeout=TIMEOUT)
         if response.status_code == 200:
             result = response.json()
         else:
@@ -122,7 +123,7 @@ def list_versions(data: AssetRequest) -> list[dict] | None:
     params: dict[str, Any] = {"type": AssetRequestType.ListVersions.value} | data.params
 
     try:
-        response = requests.get(ASSETS_ENDPOINT_URL, params)
+        response = requests.get(ASSETS_ENDPOINT_URL, params, timeout=TIMEOUT)
         if response.status_code == 200:
             result = response.json()
         else:
@@ -145,7 +146,7 @@ def list_servers() -> list[Server] | None:
     result: list[dict] = []
 
     try:
-        response = requests.get(SERVERS_ENDPOINT_URL)
+        response = requests.get(SERVERS_ENDPOINT_URL, timeout=TIMEOUT)
 
         if response.status_code == 200:
             result = response.json()
@@ -166,6 +167,7 @@ def download_asset_detailed(request: AssetRequest) -> bytes | None:
     result = requests.get(
         ASSETS_ENDPOINT_URL,
         params={"type": AssetRequestType.Download.value} | request.params,
+        timeout=TIMEOUT,
     )
 
     if result.status_code == 200:

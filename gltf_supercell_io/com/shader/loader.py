@@ -9,7 +9,6 @@ if TYPE_CHECKING:
 
 
 class LibraryLoader:
-    LibraryName = "SupercellIO"
     BaseDirectory = os.path.dirname(os.path.abspath(__file__))
     LibraryName = "supercell_io_shaders.blend"
     LibraryPath = os.path.join(BaseDirectory, "library", LibraryName)

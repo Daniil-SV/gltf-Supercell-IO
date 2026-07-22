@@ -5,6 +5,7 @@ _current_path = Path(__file__).resolve().parent
 _candidates = [
     _current_path / "TextureLoader.dll",
     _current_path / "TextureLoader.so",
+    _current_path / "TextureLoader.dylib",
 ]
 
 _dll_path = None
