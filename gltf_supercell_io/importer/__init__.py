@@ -7,12 +7,14 @@ from .components.common import CommonImporter
 from .components.mesh import OdinMeshImporter
 from .components.animation import OdinAnimationImporter
 from .components.materials import SupercellShaderImporter
+from .components.skin import SkinImporter
 
 class glTF2ImportUserExtension(
+    CommonImporter,
+    SkinImporter,
     SupercellShaderImporter,
     OdinMeshImporter,
     OdinAnimationImporter,
-    CommonImporter,
     glTF2BaseImporterComponent,
     MixinClass,
 ):

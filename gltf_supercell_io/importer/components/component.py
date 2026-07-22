@@ -109,3 +109,9 @@ class glTF2BaseImporterComponent:
         self, vnode: "VNode", node: "Node | None", gltf: "glTFImporter"
     ):
         pass
+
+    @abstractmethod
+    def gather_import_mesh_after_hook(
+        self, gltf_mesh: "Mesh", blender_mesh: bpy.types.Mesh, gltf: "glTFImporter"
+    ):
+        pass

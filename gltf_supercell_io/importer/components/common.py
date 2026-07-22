@@ -9,16 +9,15 @@ from ...com import glTF_extension_name, glTF_material_extension_name
 from io_scene_gltf2.blender.imp.vnode import VNode
 
 from io_scene_gltf2.io.com.gltf2_io import (
-        Material,
-        Scene,
-    )
+    Material,
+    Scene,
+)
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
     from io_scene_gltf2.io.com.gltf2_io import (
         Accessor,
         Node,
-        
         Skin,
         Animation,
     )
@@ -62,7 +61,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         """
         Repairs gltf children relation indexing based on classic parent indexing stored in node extensions
         """
-        
+
         nodes: List[Node] = gltf.data.nodes or []
 
         childrens: dict[int, list[int]] = {}
@@ -89,7 +88,7 @@ class CommonImporter(glTF2BaseImporterComponent):
 
     def do_final_fixups(self, gltf: "glTFImporter"):
         """
-        Very often Supercell glTF files have missing fields that are required by the importer, 
+        Very often Supercell glTF files have missing fields that are required by the importer,
         this function adds them back
         """
 
@@ -201,7 +200,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         )
 
     @requires_extension
-    def gather_import_gltf_before_hook(self, gltf: "glTFImporter"):
+    def gather_import_gltf_before_hook(self, gltf):
         self.process_accessors(gltf)
         self.move_materials(gltf)
         self.move_animation(gltf)
@@ -217,9 +216,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         gltf.supercell_vertex_accessor_offset = 0  # type: ignore
 
     @requires_extension
-    def gather_import_node_before_hook(
-        self, vnode: VNode, node: "Node | None", gltf: "glTFImporter"
-    ):
+    def gather_import_node_before_hook(self, vnode, node, gltf):
         if node is None:
             return
 
@@ -294,9 +291,7 @@ class CommonImporter(glTF2BaseImporterComponent):
                 visit(children, armature)
 
     @requires_extension
-    def gather_import_scene_after_nodes_hook(
-        self, gltf_scene, blender_scene: bpy.types.Scene, gltf: "glTFImporter"
-    ):
+    def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene, gltf):
         if self.properties.adjust_colorspace:
             blender_scene.view_settings.view_transform = "Raw"  # type: ignore
 
