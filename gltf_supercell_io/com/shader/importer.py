@@ -14,7 +14,7 @@ from bpy.types import (
 )
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 from io_scene_gltf2.io.com.gltf2_io import Image as glImage
-from typing import Callable, Optional, Tuple, Dict
+from typing import Callable, Optional, Tuple, Dict, Any, cast
 from ..materials import ScShaderMaterial, ScBlendMode
 from ..materials.variables import (
     ShaderFloatVectorProperty,
@@ -32,6 +32,7 @@ from ..external.image_converter import load_image_converter
 
 if TYPE_CHECKING:
     from ..shader_presets import ShaderPresetDescriptor
+    from ...importer.ui import glTFSupercellImporterProperties
 
 # An array of image extensions that can be loaded by blender
 NATIVE_IMAGE_EXTENSIONS = [
@@ -286,6 +287,11 @@ class ShaderImporter(ShaderUtils):
     def load_texture_image(
         self, prop: ShaderTextureProperty, preserve_path: bool = False
     ) -> Image:
+        scene = cast(Any, bpy.context.scene)
+        props: "glTFSupercellImporterProperties" = (
+            scene.glTFSupercellImporterProperties
+        )
+                
         # Using gltf images as our cache
         # Should be more reliable for some edge cases
         self.gltf.data.images = self.gltf.data.images or []
@@ -316,8 +322,10 @@ class ShaderImporter(ShaderUtils):
             gltf_image = glImage(None, None, None, None, prop.path, prop.path)
             gltf_image.blender_image_name = image.name  # type: ignore
             self.gltf.data.images.append(gltf_image)
-            image.colorspace_settings.name = "scene_linear"  # type: ignore
-            image.use_view_as_render = True
+            
+            if props.adjust_colorspace:
+                image.colorspace_settings.name = "scene_linear"  # type: ignore
+                image.use_view_as_render = True
 
         def fallback():
             image = bpy.data.images.new(str(name), 1, 1)
