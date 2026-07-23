@@ -4,6 +4,7 @@ import numpy as np
 from pathlib import Path
 from os.path import join, exists
 from bpy.types import (
+    Node,
     NodeSocket,
     ShaderNodeTexImage,
     ShaderNodeOutputMaterial,
@@ -58,6 +59,13 @@ IMAGE_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS + COMPRESSED_TITAN_IMAGE_EXTENSIONS
 
 # An array of image extensions that can be loaded by Blender and supported by Titan
 NATIVE_TITAN_IMAGE_EXTENSION = [".png"] + COMPRESSED_TITAN_IMAGE_EXTENSIONS
+
+NATIVE_NODES = [
+    cls
+    for cls in dir(bpy.types)
+    if isinstance(getattr(bpy.types, cls), type)
+    and issubclass(getattr(bpy.types, cls), bpy.types.Node)
+]
 
 
 class ShaderImporter(ShaderUtils):
@@ -240,44 +248,40 @@ class ShaderImporter(ShaderUtils):
                         return self.load_texture_from_image(str(path), data)
 
             # Trying to fetch raw textures from neko asset api
-            for maybe_path in paths:
-                # Iterate only by titan supported extensions
-                # Using just NATIVE_IMAGE_EXTENSIONS creates a lot of
-                # network requests just to guess texture name
-                if extension not in NATIVE_TITAN_IMAGE_EXTENSION:
-                    break
+            # Iterate only by titan supported extensions
+            # Using just NATIVE_IMAGE_EXTENSIONS creates a lot of
+            # network requests just to guess texture name
+            if extension in NATIVE_TITAN_IMAGE_EXTENSION:
+                for maybe_path in paths:
+                    # Check if blender can load texture with that extension
+                    # Or image converter can decode it locally
+                    if (
+                        extension not in NATIVE_IMAGE_EXTENSIONS
+                        and extension not in IMAGE_CONVERTER_EXTENSIONS
+                    ):
+                        continue
 
-                # Check if blender can load texture with that extension
-                # Or image converter can decode it locally
-                if (
-                    extension not in NATIVE_IMAGE_EXTENSIONS
-                    and extension not in IMAGE_CONVERTER_EXTENSIONS
-                ):
-                    continue
+                    result = texture_loader.download_raw_texture(maybe_path.as_posix())
+                    if result is None:
+                        continue
 
-                result = texture_loader.download_raw_texture(maybe_path.as_posix())
-                if result is None:
-                    continue
+                    texture_path, data = result
 
-                texture_path, data = result
+                    # Decoding with image converter
+                    if extension in IMAGE_CONVERTER_EXTENSIONS:
+                        return self.load_compressed_texture(Path(texture_path))
 
-                # Decoding with image converter
-                if extension in IMAGE_CONVERTER_EXTENSIONS:
-                    return self.load_compressed_texture(Path(texture_path))
-
-                # Loading from cached native image
-                if data:
-                    return self.load_texture_from_image(str(path), data)
+                    # Loading from cached native image
+                    if data:
+                        return self.load_texture_from_image(str(path), data)
 
             # Trying to decode textures using neko api and its asset database
             # Works only for asset browser
-            for maybe_path in paths:
-                if extension not in SUPPORTED_NEKO_EXTENSIONS:
-                    continue
-
-                data = texture_loader.convert_texture(str(maybe_path.as_posix()))
-                if data:
-                    return self.load_texture_from_image(str(path), data)
+            if extension in SUPPORTED_NEKO_EXTENSIONS:
+                for maybe_path in paths:
+                    data = texture_loader.convert_texture(str(maybe_path.as_posix()))
+                    if data:
+                        return self.load_texture_from_image(str(path), data)
 
     def load_texture_image(
         self, prop: ShaderTextureProperty, preserve_path: bool = False
@@ -450,8 +454,13 @@ class ShaderImporter(ShaderUtils):
 
         return False
 
-    def setup_shader(self):
-        node = LibraryLoader.instantiate_shader(self.tree, self.preset.shader_idname)
+    def setup_shader(self) -> Node:
+        if self.preset.shader_idname in NATIVE_NODES:
+            node = self.tree.nodes.new(self.preset.shader_idname)
+        else:
+            node = LibraryLoader.instantiate_shader(
+                self.tree, self.preset.shader_idname
+            )
 
         node.label = self.preset.shader_label
         node.location = 40 - node.width - self.x_offset, 100

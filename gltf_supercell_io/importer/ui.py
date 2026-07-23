@@ -64,6 +64,11 @@ class glTFSupercellImporterProperties(PropertyGroup):
                 "Legacy Brawl Stars",
                 "Use older version of Brawl Stars materials",
             ),
+            (
+                str(ShaderPresetType.BSDF),
+                "Principled BSDF",
+                "Use default Blender shader for materials. Take note that most of SC materials data will be lost.",
+            ),
         ],
         default=str(ShaderPresetType.UNLIT),
     )

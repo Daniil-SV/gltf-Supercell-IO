@@ -65,34 +65,35 @@ class ASSETS_OT_refresh(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class ASSETS_OT_import(bpy.types.Operator):
-    bl_idname = "supercell.assets_import"
+class ASSETS_OT_import_api(bpy.types.Operator):
+    bl_idname = "supercell.assets_import_api"
     bl_label = "Import GLB"
+
+    game: bpy.props.StringProperty()
+    version: bpy.props.StringProperty()
+    filepath: bpy.props.StringProperty()
 
     def execute(self, context):  # type: ignore
         props = cast(
             "AssetBrowserProperties", cast(Any, context.scene).sc_asset_browser
         )
-        if not props.assets or not props.game or props.asset_index >= len(props.assets):
-            return {"CANCELLED"}
 
         props.currently_importing = True
         # Getting selected version hash
-        versions = list_versions(AssetRequest(game_server=props.game))
+        versions = list_versions(AssetRequest(game_server=self.game))
         if versions is None:
             self.report({"ERROR"}, "Failed to fetch versions")
             return {"CANCELLED"}
 
-        hash = get_version_sha(props.version)
+        hash = get_version_sha(self.version)
 
         # Getting item and creating temp path
-        item = cast("AssetBrowserItem", props.assets[props.asset_index])
-        filepath: Path = Path(tempdir) / hash / item.path
+        filepath: Path = Path(tempdir) / hash / self.filepath
         if not os.path.exists(filepath):
             # Downloading file
             data = download_asset_detailed(
                 AssetRequest(
-                    search=item.path, game_server=props.game, version=props.version
+                    search=self.filepath, game_server=self.game, version=self.version
                 )
             )
             if data is None:
@@ -104,6 +105,22 @@ class ASSETS_OT_import(bpy.types.Operator):
             with open(filepath, "wb") as file:
                 file.write(data)
 
+        bpy.ops.import_scene.gltf(filepath=str(filepath))
+        props.currently_importing = False
+        return {"FINISHED"}
+
+
+class ASSETS_OT_import(bpy.types.Operator):
+    bl_idname = "supercell.assets_import"
+    bl_label = "Import GLB"
+
+    def execute(self, context):  # type: ignore
+        props = cast(
+            "AssetBrowserProperties", cast(Any, context.scene).sc_asset_browser
+        )
+        if not props.assets or not props.game or props.asset_index >= len(props.assets):
+            return {"CANCELLED"}
+
         gltf_props = cast(
             "glTFSupercellImporterProperties",
             cast(Any, context.scene).glTFSupercellImporterProperties,
@@ -111,9 +128,12 @@ class ASSETS_OT_import(bpy.types.Operator):
 
         if props.game == "BS" or props.game == "BSCN":
             gltf_props.shader_preset = "ScLegacyBrawlStarsShader"
-        bpy.ops.import_scene.gltf(filepath=str(filepath))
 
-        props.currently_importing = False
+        item = cast("AssetBrowserItem", props.assets[props.asset_index])
+        bpy.ops.supercell.assets_import_api(  # type: ignore
+            game=props.game, version=props.version, filepath=item.path
+        )
+
         return {"FINISHED"}
 
 

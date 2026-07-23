@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
-from .descriptor import ShaderPresetDescriptor
+from ..descriptor import ShaderPresetDescriptor
 
 if TYPE_CHECKING:
-    from ..shader.importer import ShaderImporter
-    from ..shader.exporter import ShaderExporter
+    from ...shader.importer import ShaderImporter
+    from ...shader.exporter import ShaderExporter
 
 
 # Unlit shader socket map
@@ -46,6 +46,7 @@ class UnlitPreset(ShaderPresetDescriptor):
     def setup_opacity(shader: "ShaderImporter | ShaderExporter"):
         shader.set_constant_prop("OPACITY", OPACITY_ENABLED)
         shader.set_float_prop("opacity", OPACITY)
+        shader.set_texture_prop("opacityTex2D", OPACITY)
 
     @staticmethod
     def setup_clipping(shader: "ShaderImporter | ShaderExporter"):

@@ -14,22 +14,15 @@ class STRING_ARRAY_STATE(bpy.types.PropertyGroup):
 
 
 def get_state():
-    return bpy.context.window_manager.scgltf_string_array_state
+    return bpy.context.window_manager.scgltf_string_array_state  # type: ignore
 
 
 class StringItem(PropertyGroup):
-    value: StringProperty(
-        name="Value",
-        default=""
-    )
+    value: StringProperty(name="Value", default="")
 
 
 class DirectoryStringItem(PropertyGroup):
-    value: StringProperty(
-        name="Value",
-        subtype="DIR_PATH",
-        default=""
-    )
+    value: StringProperty(name="Value", subtype="DIR_PATH", default="")
 
 
 class StringArray:
@@ -44,12 +37,7 @@ class StringArray:
 
         # LIST
         layout.template_list(
-            "STRING_ARRAY_UL_items",
-            "",
-            data,
-            collection_prop,
-            state,
-            "active_index"
+            "STRING_ARRAY_UL_items", "", data, collection_prop, state, "active_index"
         )
 
         row = layout.row(align=True)
@@ -59,8 +47,7 @@ class StringArray:
         add.collection_prop = collection_prop
         add.default_value = default_value
 
-        remove = row.operator("string_array.remove",
-                              text="Remove", icon="REMOVE")
+        remove = row.operator("string_array.remove", text="Remove", icon="REMOVE")
         remove.data_path = data_path
         remove.collection_prop = collection_prop
 
@@ -80,7 +67,11 @@ class STRING_ARRAY_UL_items(UIList):
     ):
         state = get_state()
 
-        if active_property is not None and active_data == data and getattr(active_data, active_property, 0) != index:
+        if (
+            active_property is not None
+            and active_data == data
+            and getattr(active_data, active_property, 0) != index
+        ):
             state.active_index = index
 
         layout.prop(item, "value", text="")
@@ -98,20 +89,19 @@ class STRING_ARRAY_OT_add(Operator):
         try:
             data = context.path_resolve(self.data_path)
         except Exception:
-            self.report({'ERROR'}, f"Invalid data path: {self.data_path}")
-            return {'CANCELLED'}
+            self.report({"ERROR"}, f"Invalid data path: {self.data_path}")
+            return {"CANCELLED"}
 
         collection = getattr(data, self.collection_prop, None)
 
         if collection is None:
-            self.report(
-                {'ERROR'}, f"Missing collection: {self.collection_prop}")
-            return {'CANCELLED'}
+            self.report({"ERROR"}, f"Missing collection: {self.collection_prop}")
+            return {"CANCELLED"}
 
         item = collection.add()
         item.value = self.default_value
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class STRING_ARRAY_OT_remove(Operator):
@@ -126,7 +116,7 @@ class STRING_ARRAY_OT_remove(Operator):
         collection = getattr(data, self.collection_prop, None)
 
         if not collection:
-            return {'CANCELLED'}
+            return {"CANCELLED"}
 
         state = get_state()
         index = state.active_index
@@ -135,4 +125,4 @@ class STRING_ARRAY_OT_remove(Operator):
             collection.remove(index)
             state.active_index = max(0, index - 1)
 
-        return {'FINISHED'}
+        return {"FINISHED"}

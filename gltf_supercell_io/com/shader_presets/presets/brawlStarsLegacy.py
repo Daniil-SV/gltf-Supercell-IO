@@ -1,10 +1,10 @@
 from bpy.types import NodeSocket
-from .descriptor import ShaderPresetDescriptor
+from ..descriptor import ShaderPresetDescriptor
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..shader.importer import ShaderImporter
-    from ..shader.exporter import ShaderExporter
+    from ...shader.importer import ShaderImporter
+    from ...shader.exporter import ShaderExporter
 
 CONSTANT_MAP = {
     0: "AMBIENT",

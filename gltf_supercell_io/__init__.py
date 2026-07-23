@@ -28,6 +28,7 @@ from .com.editor.string_array import (
 )
 from .com.editor.asset_importer import (
     ASSETS_OT_import,
+    ASSETS_OT_import_api,
     ASSETS_PT_panel,
     ASSETS_OT_refresh,
     ASSETS_UL_list,
@@ -60,6 +61,7 @@ classes = [
     SupercellGLTFPreferences,  # Addon preferences
     # Assets import
     ASSETS_OT_import,
+    ASSETS_OT_import_api,
     ASSETS_PT_panel,
     ASSETS_OT_refresh,
     ASSETS_UL_list,

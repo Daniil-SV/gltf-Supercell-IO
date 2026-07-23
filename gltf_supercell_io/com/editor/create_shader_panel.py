@@ -15,37 +15,35 @@ class SHADER_OT_SC_create_shader(Operator):
 
     def execute(self, context):  # type: ignore
         obj = context.active_object
-        if (obj is None):
-            self.report({'WARNING'}, "No active object")
-            return {'CANCELLED'}
+        if obj is None:
+            self.report({"WARNING"}, "No active object")
+            return {"CANCELLED"}
 
         mat = obj.active_material
-        if (mat is None):
-            self.report({'WARNING'}, "No active material")
-            return {'CANCELLED'}
+        if mat is None:
+            self.report({"WARNING"}, "No active material")
+            return {"CANCELLED"}
 
-        if (self.item_type == "utility"):
+        if self.item_type == "utility":
             node = LibraryLoader.instantiate_utility(
-                ShaderUtils.get_node_tree(mat),
-                self.item_id
+                ShaderUtils.get_node_tree(mat), self.item_id
             )
-        elif (self.item_type == "shader"):
+        elif self.item_type == "shader":
             node = LibraryLoader.instantiate_shader(
-                ShaderUtils.get_node_tree(mat),
-                self.item_id
+                ShaderUtils.get_node_tree(mat), self.item_id
             )
 
-            if (not self.item_label):
+            if not self.item_label:
                 preset = ShaderPresets.get_preset_by_id(self.item_id)
                 node.label = preset.shader_label
         else:
             raise NotImplementedError()
 
-        if (node):
-            if (self.item_label):
+        if node:
+            if self.item_label:
                 node.label = self.item_label
 
-        return {'FINISHED'}
+        return {"FINISHED"}
 
 
 class SHADER_PT_SC_create_shader(Panel):
@@ -55,7 +53,7 @@ class SHADER_PT_SC_create_shader(Panel):
     bl_category = "Supercell"
 
     def draw(self, context):
-        if (self.layout is not None):
+        if self.layout is not None:
             unlit = self.layout.operator(
                 "supercell.create_tree", text="Create unlit shader"
             )
@@ -76,7 +74,7 @@ class SHADER_PT_SC_create_utilities(Panel):
     bl_category = "Supercell"
 
     def draw(self, context):
-        if (self.layout is not None):
+        if self.layout is not None:
             lightmap = self.layout.operator(
                 "supercell.create_tree", text="Create Lightmap UV"
             )
