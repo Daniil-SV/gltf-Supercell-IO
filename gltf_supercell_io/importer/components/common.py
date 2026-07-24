@@ -11,6 +11,7 @@ from io_scene_gltf2.blender.imp.vnode import VNode
 from io_scene_gltf2.io.com.gltf2_io import (
     Material,
     Scene,
+    Animation,
 )
 
 if TYPE_CHECKING:
@@ -19,7 +20,6 @@ if TYPE_CHECKING:
         Accessor,
         Node,
         Skin,
-        Animation,
     )
 
 
