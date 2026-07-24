@@ -3,7 +3,7 @@ from typing import cast, Any
 
 from .com.editor.string_array import *
 from .exporter.ui import glTFSupercellExporterProperties
-from .importer.ui import glTFSupercellImporterProperties
+from .importer.ui import glTFSupercellImporterProperties, glTFSupercellTextureOverride
 from .com.shader.handler import shader_linkage_handler
 from .com.shader.nodes import ShaderNodeScShader, ShaderNodeScUtility, ShaderNodeScNode
 from .com.editor import (
@@ -50,6 +50,7 @@ classes = [
     STRING_ARRAY_OT_add,
     STRING_ARRAY_OT_remove,
     STRING_ARRAY_STATE,
+    glTFSupercellTextureOverride,  # Texture override descriptor
     glTFSupercellImporterProperties,  # Importer properties
     glTFSupercellExporterProperties,  # Exporter properties
     ShaderNodeScNode,  # Base class for custom nodes

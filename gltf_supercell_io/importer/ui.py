@@ -1,9 +1,15 @@
-from typing import Any, cast
-
 from bpy.types import UILayout, Context, PropertyGroup
-from bpy.props import BoolProperty, EnumProperty, FloatProperty
+from bpy.props import (
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    StringProperty,
+    CollectionProperty,
+)
 from ..com.shader_presets import ShaderPresetType
 from ..com import glTF_extension_name
+
+from typing import Any, cast
 
 fps_source_items = (
     (
@@ -23,22 +29,9 @@ fps_source_items = (
     ("CUSTOM", "Custom", "The sequence is resampled to a custom frame rate", 2),
 )
 
-materials_source_items = (
-    (
-        "IMPORT",
-        "Import",
-        "Creates new materials as usual, so even if the materials exist, new instances will be created specifically for the imported resources",
-        "FILE_NEW",
-        0,
-    ),
-    (
-        "EXISTINGS",
-        "Existing",
-        "Attempts to use existing materials in the scene. Useful for assets that are split across multiple files but share the same material.",
-        "BLENDER",
-        1,
-    ),
-)
+class glTFSupercellTextureOverride(PropertyGroup):
+    name: StringProperty(description="Name of overridable texture e.g diffuseTex2D")
+    path: StringProperty(description="Texture path to override with")
 
 
 class glTFSupercellImporterProperties(PropertyGroup):
@@ -91,7 +84,10 @@ class glTFSupercellImporterProperties(PropertyGroup):
         step=100,
     )
 
-    material_source: EnumProperty(name="Material Source", items=materials_source_items)
+    texture_override: CollectionProperty(
+        type=glTFSupercellTextureOverride,
+        description="An array of key/value-like objects that can be used using script to override some sc materials inputs (like skins.csv from brawl stars)",
+    )
 
 
 def draw_import(context: Context, layout: UILayout):

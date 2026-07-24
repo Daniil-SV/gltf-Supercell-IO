@@ -144,7 +144,7 @@ class ShaderImporter(ShaderUtils):
             if not prop.path:
                 return
 
-            image = self.load_texture_image(prop, True)
+            image = self.load_texture_image(key, prop, True)
             self.shader[key] = image
             return
 
@@ -285,12 +285,20 @@ class ShaderImporter(ShaderUtils):
                         return self.load_texture_from_image(str(path), data)
 
     def load_texture_image(
-        self, prop: ShaderTextureProperty, preserve_path: bool = False
+        self, socket_name: str, prop: ShaderTextureProperty, preserve_path: bool = False
     ) -> Image:
         scene = cast(Any, bpy.context.scene)
         props: "glTFSupercellImporterProperties" = (
             scene.glTFSupercellImporterProperties
         )
+        
+        path = None
+        for override in props.texture_override:
+            if override.name == socket_name:
+                path = override.path
+                
+        if path is None:
+            path = prop.path
                 
         # Using gltf images as our cache
         # Should be more reliable for some edge cases
@@ -298,14 +306,14 @@ class ShaderImporter(ShaderUtils):
         gltf_images = [
             image
             for image in self.gltf.data.images
-            if image.uri == prop.path and image.blender_image_name is not None
+            if image.uri == path and image.blender_image_name is not None
         ]
         if len(gltf_images) > 0:
             name = gltf_images[0].blender_image_name
             image = bpy.data.images[name]
             return image
 
-        path = Path(prop.path)
+        path = Path(path)
         extension = path.suffix
 
         if extension == ".sc":
@@ -368,7 +376,7 @@ class ShaderImporter(ShaderUtils):
             texture: ShaderNodeTexImage = self.tree.nodes.new(
                 "ShaderNodeTexImage"
             )  # type: ignore
-            texture.image = self.load_texture_image(prop)
+            texture.image = self.load_texture_image(name, prop)
 
             x, y = self.shader.location
 
