@@ -17,11 +17,10 @@ class BsdfPreset(ShaderPresetDescriptor):
 
     @staticmethod
     def import_shader(shader: "ShaderImporter"):
-        shader.set_texture_prop("diffuseTex2D", DIFFUSE_TEX)
-        shader.set_color_prop("diffuse", DIFFUSE_TEX)
-
-        shader.set_float_prop("opacity", OPACITY_TEX)
-        shader.set_texture_prop("opacityTex2D", OPACITY_TEX)
+        shader.set_surface_color("diffuse", "diffuseTex2D", DIFFUSE_TEX)
+        shader.set_surface_color(
+            "opacity", "opacityTex2D", OPACITY_TEX, defaultValue=1.0
+        )
 
         ior = 0.0
         roughness = 1.0
