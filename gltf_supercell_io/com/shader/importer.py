@@ -144,7 +144,7 @@ class ShaderImporter(ShaderUtils):
             if not prop.path:
                 return
 
-            image = self.load_texture_image(key, prop, True)
+            image = self.load_texture_image(prop, True)
             self.shader[key] = image
             return
 
@@ -285,35 +285,25 @@ class ShaderImporter(ShaderUtils):
                         return self.load_texture_from_image(str(path), data)
 
     def load_texture_image(
-        self, socket_name: str, prop: ShaderTextureProperty, preserve_path: bool = False
+        self, prop: ShaderTextureProperty, preserve_path: bool = False
     ) -> Image:
         scene = cast(Any, bpy.context.scene)
-        props: "glTFSupercellImporterProperties" = (
-            scene.glTFSupercellImporterProperties
-        )
-        
-        path = None
-        for override in props.texture_override:
-            if override.name == socket_name:
-                path = override.path
-                
-        if path is None:
-            path = prop.path
-                
+        props: "glTFSupercellImporterProperties" = scene.glTFSupercellImporterProperties
+
         # Using gltf images as our cache
         # Should be more reliable for some edge cases
         self.gltf.data.images = self.gltf.data.images or []
         gltf_images = [
             image
             for image in self.gltf.data.images
-            if image.uri == path and image.blender_image_name is not None
+            if image.uri == prop.path and image.blender_image_name is not None
         ]
         if len(gltf_images) > 0:
             name = gltf_images[0].blender_image_name
             image = bpy.data.images[name]
             return image
 
-        path = Path(path)
+        path = Path(prop.path)
         extension = path.suffix
 
         if extension == ".sc":
@@ -330,7 +320,7 @@ class ShaderImporter(ShaderUtils):
             gltf_image = glImage(None, None, None, None, prop.path, prop.path)
             gltf_image.blender_image_name = image.name  # type: ignore
             self.gltf.data.images.append(gltf_image)
-            
+
             if props.adjust_colorspace:
                 image.colorspace_settings.name = "scene_linear"  # type: ignore
                 image.use_view_as_render = True
@@ -361,7 +351,14 @@ class ShaderImporter(ShaderUtils):
         return image
 
     def _set_texture_prop_internal(self, name: str, index: int):
+        scene = cast(Any, bpy.context.scene)
+        props: "glTFSupercellImporterProperties" = scene.glTFSupercellImporterProperties
+
         prop = self.sc_material.get_property(name, ShaderTextureProperty)
+        for override in props.texture_override:
+            if override.name == name:
+                prop = ShaderTextureProperty(override.path)
+                break
 
         if prop is None:
             # Often textures leave a color, it needs to be marked as read
@@ -376,7 +373,7 @@ class ShaderImporter(ShaderUtils):
             texture: ShaderNodeTexImage = self.tree.nodes.new(
                 "ShaderNodeTexImage"
             )  # type: ignore
-            texture.image = self.load_texture_image(name, prop)
+            texture.image = self.load_texture_image(prop)
 
             x, y = self.shader.location
 
