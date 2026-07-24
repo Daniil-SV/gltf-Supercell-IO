@@ -33,7 +33,7 @@ class SkinImporter(glTF2BaseImporterComponent):
             return False
 
         return True
-    
+
     @requires_extension
     def gather_import_mesh_options(
         self,
@@ -76,6 +76,9 @@ class SkinImporter(glTF2BaseImporterComponent):
 
     @requires_extension
     def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
+        if self.skin_idx is None or self.skin_idx == -1:
+            return
+
         skins: list["Skin"] = gltf.data.skins or []
         target_skin = skins[self.skin_idx]
         joints = target_skin.joints or []
