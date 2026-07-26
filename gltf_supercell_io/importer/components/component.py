@@ -7,11 +7,7 @@ if TYPE_CHECKING:
     from ..ui import glTFSupercellImporterProperties
     from io_scene_gltf2.blender.imp.vnode import VNode
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-    from io_scene_gltf2.io.com.gltf2_io import (
-        Material,
-        Node,
-        Mesh,
-    )
+    from io_scene_gltf2.io.com.gltf2_io import Material, Node, Mesh, Scene
 
 
 class IMPORT_mesh_options(Protocol):
@@ -100,7 +96,7 @@ class glTF2BaseImporterComponent:
 
     @abstractmethod
     def gather_import_scene_after_nodes_hook(
-        self, gltf_scene, blender_scene: bpy.types.Scene, gltf: "glTFImporter"
+        self, gltf_scene: "Scene", blender_scene: bpy.types.Scene, gltf: "glTFImporter"
     ):
         pass
 
@@ -113,5 +109,14 @@ class glTF2BaseImporterComponent:
     @abstractmethod
     def gather_import_mesh_after_hook(
         self, gltf_mesh: "Mesh", blender_mesh: bpy.types.Mesh, gltf: "glTFImporter"
+    ):
+        pass
+
+    @abstractmethod
+    def gather_import_scene_after_animation_hook(
+        self,
+        gltf_scene: "Scene | None",
+        blender_scene: bpy.types.Scene,
+        gltf: "glTFImporter",
     ):
         pass

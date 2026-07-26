@@ -8,6 +8,8 @@ from .components.mesh import OdinMeshImporter
 from .components.animation import OdinAnimationImporter
 from .components.materials import SupercellShaderImporter
 from .components.skin import SkinImporter
+from .components.animation_retarget import AnimationImporter
+
 
 class glTF2ImportUserExtension(
     CommonImporter,
@@ -15,6 +17,7 @@ class glTF2ImportUserExtension(
     SupercellShaderImporter,
     OdinMeshImporter,
     OdinAnimationImporter,
+    AnimationImporter,
     glTF2BaseImporterComponent,
     MixinClass,
 ):
@@ -57,5 +60,21 @@ class glTF2ImportUserExtension(
             gltf_material,
             vertex_color,
             blender_mat,
+            gltf,
+        )
+
+    def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene, gltf):
+        self(
+            "gather_import_scene_after_nodes_hook",
+            gltf_scene,
+            blender_scene,
+            gltf,
+        )
+
+    def gather_import_scene_after_animation_hook(self, gltf_scene, blender_scene, gltf):
+        self(
+            "gather_import_scene_after_animation_hook",
+            gltf_scene,
+            blender_scene,
             gltf,
         )

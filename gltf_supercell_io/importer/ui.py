@@ -89,6 +89,12 @@ class glTFSupercellImporterProperties(PropertyGroup):
         description="An array of key/value-like objects that can be used using script to override some sc materials inputs (like skins.csv from brawl stars)",
     )
 
+    apply_animation: BoolProperty(
+        name="Apply animation",
+        description="If imported file is pure animation, and there is an active skeleton in the scene, then this animation is automatically applied to that skeleton",
+        default=True,
+    )
+
 
 def draw_import(context: Context, layout: UILayout):
     if not context.scene:
@@ -113,3 +119,4 @@ def draw_import(context: Context, layout: UILayout):
     body.prop(props, "single_skeleton")
     body.prop(props, "better_settings")
     body.prop(props, "adjust_colorspace")
+    body.prop(props, "apply_animation")

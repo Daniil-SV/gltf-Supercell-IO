@@ -1,8 +1,8 @@
 import bpy
 
 from pathlib import Path
-from mathutils import Vector
-from typing import Any, TYPE_CHECKING, List
+
+from typing import TYPE_CHECKING, List
 from .component import glTF2BaseImporterComponent, requires_extension
 
 from ...com import glTF_extension_name, glTF_material_extension_name
@@ -12,6 +12,7 @@ from io_scene_gltf2.io.com.gltf2_io import (
     Material,
     Scene,
     Animation,
+    Skin,
 )
 
 if TYPE_CHECKING:
@@ -19,11 +20,16 @@ if TYPE_CHECKING:
     from io_scene_gltf2.io.com.gltf2_io import (
         Accessor,
         Node,
-        Skin,
     )
+    from io_scene_gltf2.blender.imp.node import VNode
 
 
 class CommonImporter(glTF2BaseImporterComponent):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bone_nodes = set()
+
     def process_accessors(self, gltf: "glTFImporter"):
         """
         Supercell uses special component types for some accessors to optimize gpu memory usage,
@@ -62,7 +68,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         Repairs gltf children relation indexing based on classic parent indexing stored in node extensions
         """
 
-        nodes: List[Node] = gltf.data.nodes or []
+        nodes: List["Node"] = gltf.data.nodes or []
 
         childrens: dict[int, list[int]] = {}
 
@@ -86,6 +92,47 @@ class CommonImporter(glTF2BaseImporterComponent):
         for idx, children in childrens.items():
             nodes[idx].children = children
 
+    def get_selected_armature_bones(self):
+        """
+        Returns list of bone names of currently selected armatures
+        Used for animation bones recovery
+        """
+        ctx = bpy.context
+        layer = ctx.view_layer
+        if layer is None:
+            return
+
+        selected = [obj for obj in ctx.selected_objects if obj.type == "ARMATURE"]
+        if len(selected) == 0:
+            return
+
+        result: set[str] = set()
+        for obj in selected:
+            if not isinstance(obj.data, bpy.types.Armature):
+                continue
+
+            result.update([bone.name for bone in obj.data.bones])
+
+        return list(result)
+
+    def restore_skin_bones(self, gltf: "glTFImporter"):
+        skins: list[Skin] = gltf.data.skins or []
+        for i, skin in enumerate(skins):
+            joints: list[int] = skin.joints or []
+
+            def visit(idx: int):
+                node: "Node" = gltf.data.nodes[idx]
+                node.skin = i
+
+                if node.name:
+                    self.bone_nodes.add(node.name)
+
+                for children in node.children or []:
+                    visit(children)
+
+            for joint in joints:
+                visit(joint)
+
     def do_final_fixups(self, gltf: "glTFImporter"):
         """
         Very often Supercell glTF files have missing fields that are required by the importer,
@@ -93,10 +140,10 @@ class CommonImporter(glTF2BaseImporterComponent):
         """
 
         root_nodes = []
-        nodes: List[Node] = gltf.data.nodes or []
+        nodes: List["Node"] = gltf.data.nodes or []
         skins = gltf.data.skins = gltf.data.skins or []
 
-        # Fix for scene nodes
+        # Fix for scene and root nodes definition
         if gltf.data.scenes is None:
             childrens = set()
             for node in nodes:
@@ -113,17 +160,26 @@ class CommonImporter(glTF2BaseImporterComponent):
                     root_nodes = scene.nodes
                     break
 
+        if gltf.data.scene is None:
+            gltf.data.scene = 0
+
         # Some of root nodes may has scale(0, 0, 0) for some fucking reason
         # Which is obviously wrong and which is cause for bones calculation errors later
         for node_idx in root_nodes:
-            node: Node = gltf.data.nodes[node_idx]
+            node: "Node" = gltf.data.nodes[node_idx]
             if node.scale == [0, 0, 0]:
                 node.scale = None
+
+        bone_names = None
+        if self.properties.apply_animation:
+            bone_names = self.get_selected_armature_bones()
 
         is_embedded_animation = (
             len(gltf.data.meshes or []) != 0 and len(gltf.data.animations or []) != 0
         )
-        is_static_scene = len(gltf.data.animations or []) == 0 and len(skins) == 0
+        is_static_scene = (
+            len(gltf.data.animations or []) == 0 and len(skins) == 0 and not bone_names
+        )
         if (
             self.properties.single_skeleton
             and not is_embedded_animation
@@ -136,9 +192,17 @@ class CommonImporter(glTF2BaseImporterComponent):
                 joints = [
                     i
                     for i, node in enumerate(gltf.data.nodes)
-                    if node.mesh is None and node.camera is None and node.skin is None
+                    if node.mesh is None  # node is mesh reference
+                    and node.camera is None  # node is camera references
+                    and node.skin is None  # node has explicit skin index
+                    and (
+                        True if bone_names is None else node.name in bone_names
+                    )  # Optionally, we could restore it from selected armature
                 ]
+
                 skins.append(Skin.from_dict({"joints": joints}))
+            else:
+                self.restore_skin_bones(gltf)
 
             if len(root_nodes) == 1:
                 for skin in skins:
@@ -229,71 +293,7 @@ class CommonImporter(glTF2BaseImporterComponent):
                 vnode.type = VNode.DummyRoot
                 vnode.mesh_node_idx = None
 
-    def filter_deform_bones(self, gltf: "glTFImporter"):
-        vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
-
-        deform_bones: list[int] = []
-        skins: list[Skin] = gltf.data.skins or []
-
-        # Create list of deform bones
-        for skin in skins:
-            deform_bones += skin.joints or []
-
-        # Set use_deform for each armature and bone
-        def visit(vnode_id: Any):
-            vnode: VNode = vnodes[vnode_id]
-
-            if vnode.type == VNode.Bone:
-                bone_arma = vnode.bone_arma  # type: ignore
-                arma_object: bpy.types.Object = vnodes[bone_arma].blender_object  # type: ignore
-                armature: bpy.types.Armature = arma_object.data  # type: ignore
-
-                bone_name = vnode.blender_bone_name  # type: ignore
-                bone: bpy.types.Bone = armature.bones[bone_name]  # type: ignore
-                bone.use_deform = vnode_id in deform_bones
-
-            for children in vnode.children:
-                visit(children)
-
-        visit("root")
-
-    def move_pose_bone_offset(self, bone: bpy.types.PoseBone):
-        default_scale = Vector((1.0, 1.0, 1.0))
-        if bone.scale != default_scale:
-            bone["scScaleOverride"] = bone.scale
-            bone.scale = default_scale
-
-    def create_pose_bones_properties(self, gltf: "glTFImporter"):
-        """
-        This function iterates over created gltf bones and moves pose mode transformation to custom properties
-        This is required for correct displaying in blender and for correct inverse matrices exporting
-        """
-        vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
-
-        def visit(vnode_id: Any, armature: bpy.types.Object):
-            vnode: VNode = vnodes[vnode_id]
-
-            if vnode.type == VNode.Bone:
-                bone_name = vnode.blender_bone_name  # type: ignore
-                if armature.pose and armature.pose.bones[bone_name]:
-                    bone = armature.pose.bones[bone_name]
-                    self.move_pose_bone_offset(bone)
-
-            for children in vnode.children:
-                visit(children, armature)
-
-        for vnode in vnodes.values():
-            if vnode.type != VNode.Object and not vnode.is_arma:
-                continue
-
-            armature: bpy.types.Object = vnode.blender_object  # type: ignore
-            for children in vnode.children:
-                visit(children, armature)
-
     @requires_extension
     def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene, gltf):
         if self.properties.adjust_colorspace:
             blender_scene.view_settings.view_transform = "Raw"  # type: ignore
-
-        self.filter_deform_bones(gltf)
-        self.create_pose_bones_properties(gltf)
