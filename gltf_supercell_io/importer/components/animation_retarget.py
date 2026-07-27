@@ -37,7 +37,9 @@ class AnimationImporter(glTF2BaseImporterComponent):
             return vnode.blender_object  # type: ignore
 
         for children in vnode.children:
-            return self.get_gltf_armature(children, gltf)
+            armature = self.get_gltf_armature(children, gltf)
+            if armature is not None:
+                return armature
 
     def get_action_range(self, source: bpy.types.Object) -> tuple[int, int]:
         anim = source.animation_data
