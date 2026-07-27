@@ -1,21 +1,16 @@
 import struct
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-from ..com.flatbuffer import deserialize_glb_json
-import sys
-import types
-
-TARGET_MODULE = "io_scene_gltf2.io.imp.gltf2_io_gltf"
-TARGET_CLASS = "glTFImporter"
-TARGET_METHOD = "load_glb"
+from ...com.flatbuffer import deserialize_glb_json
+from ...com.utilities.patcher import Patch
 
 
-def load_glb(self: glTFImporter, content: bytes):
+def load_glb(self: "glTFImporter", content: bytes):
     """Load binary glb."""
     magic = content[:4]
-    if magic != b'glTF':
+    if magic != b"glTF":
         raise ImportError("This file is not a glTF/glb file")
 
-    version, file_size = struct.unpack_from('<II', content, offset=4)
+    version, file_size = struct.unpack_from("<II", content, offset=4)
     if version != 2:
         raise ImportError("GLB version must be 2; got %d" % version)
     if file_size != len(content):
@@ -26,9 +21,9 @@ def load_glb(self: glTFImporter, content: bytes):
 
     # JSON/FLAT chunk is first
     name, length, data, offset = self.load_chunk(content, offset)
-    if (name == b'FLA2'):
+    if name == b"FLA2":
         gltf = deserialize_glb_json(data)
-    elif (name == b'JSON'):
+    elif name == b"JSON":
         gltf = glTFImporter.load_json(data)
     else:
         raise ImportError("Bad GLB: first chunk not JSON")
@@ -44,19 +39,10 @@ def load_glb(self: glTFImporter, content: bytes):
     return gltf, glb_buffer
 
 
-if TARGET_MODULE not in sys.modules:
-    fake_module = types.ModuleType(TARGET_MODULE)
-    sys.modules[TARGET_MODULE] = fake_module
-
-
-def patch_importer():
-    try:
-        mod = __import__(TARGET_MODULE, fromlist=[TARGET_CLASS])
-        cls = getattr(mod, TARGET_CLASS)
-        if getattr(cls, "__sc_patched__", False):
-            return
-        
-        cls.__sc_patched__ = True
-        setattr(cls, TARGET_METHOD, load_glb)
-    except Exception as e:
-        print(f"[SC IO] Failed to patch importer: {e}")
+flatbuffer_glb = Patch(
+    "flatbuffer gltf",
+    module_path="io_scene_gltf2.io.imp.gltf2_io_gltf",
+    target_class="glTFImporter",
+    target_method="load_glb",
+    function=load_glb,
+)

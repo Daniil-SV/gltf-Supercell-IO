@@ -15,9 +15,9 @@ from .exporter.ui import draw_export
 from .exporter import glTF2ExportUserExtension
 from .importer.ui import draw_import
 from .importer import glTF2ImportUserExtension
-from .importer.patch import patch_importer
-from .exporter.patch import patch_exporter
-from .exporter.ibm_patch import patch_matrices
+from .importer.patches import flatbuffer_glb, skinned_mesh
+from .com.utilities.patcher import register_patch, unregister_patch
+from .exporter.patches import inverse_bind_matrices_gather
 from .com.editor.string_array import (
     StringItem,
     DirectoryStringItem,
@@ -70,10 +70,15 @@ classes = [
     AssetBrowserProperties,
 ]
 
+patches = [flatbuffer_glb, skinned_mesh, inverse_bind_matrices_gather]
+
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    for patch in patches:
+        register_patch(patch)
 
     scene = cast(Any, bpy.types.Scene)
     window = cast(Any, bpy.types.WindowManager)
@@ -89,9 +94,6 @@ def register():
     )
     scene.sc_asset_browser = bpy.props.PointerProperty(type=AssetBrowserProperties)
 
-    patch_importer()
-    patch_matrices()
-    patch_exporter()
     start_asset_worker()
 
     bpy.app.handlers.load_post.append(shader_linkage_handler)

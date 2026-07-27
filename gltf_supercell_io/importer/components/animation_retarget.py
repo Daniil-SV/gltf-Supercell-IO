@@ -1,7 +1,7 @@
 import bpy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from mathutils import Matrix, Vector
+from mathutils import Matrix
 from .component import glTF2BaseImporterComponent, requires_extension
 
 from io_scene_gltf2.blender.imp.vnode import VNode

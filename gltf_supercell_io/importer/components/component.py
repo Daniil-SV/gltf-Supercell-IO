@@ -15,7 +15,7 @@ class IMPORT_mesh_options(Protocol):
     skin_into_bind_pose = True
 
 
-def __valid_gltf(gltf: "glTFImporter"):
+def is_valid_scgltf(gltf: "glTFImporter"):
     """Returns True if gltf is valid Supercell glTF and is subject to further processing"""
     required = gltf.data.extensions_required or []
     used = gltf.data.extensions_used or []
@@ -39,7 +39,7 @@ def requires_extension(func):
         # gltf always last in arguments array
         gltf: "glTFImporter" = args[len(args) - 1]
 
-        if __valid_gltf(gltf):
+        if is_valid_scgltf(gltf):
             func(*args, **kwargs)
 
     return wrapper

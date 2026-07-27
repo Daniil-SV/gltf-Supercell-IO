@@ -138,18 +138,18 @@ class ShaderExporter:
             return False
 
         texture = ShaderTextureProperty(node.image.name)
-        isSWF = texture.extension == "sc"
+        is_flash = texture.extension == "sc"
 
         prefix = props.path_prefix
         if (
             (prefix and texture)
             and not str(texture.path).startswith(prefix)
-            and not isSWF
+            and not is_flash
         ):
             texture = ShaderTextureProperty(
                 (PurePath(prefix) / PurePath(texture.value)).as_posix()
             )
-        elif isSWF and not str(texture.path).startswith("sc/"):
+        elif is_flash and not str(texture.path).startswith("sc/"):
             texture = ShaderTextureProperty(
                 (PurePath("sc/") / PurePath(texture.value)).as_posix()
             )

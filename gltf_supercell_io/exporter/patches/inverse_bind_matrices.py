@@ -4,9 +4,7 @@ from mathutils import Matrix, Vector
 from io_scene_gltf2.blender.exp.accessors import gather_accessor
 from io_scene_gltf2.io.exp.binary_data import BinaryData
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
-from io_scene_gltf2.blender.exp import skins
-
-_PATCHED = False
+from ...com.utilities.patcher import Patch
 
 
 def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict):
@@ -84,21 +82,9 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict):
     )
 
 
-def patch_matrices():
-    global _PATCHED
-
-    if _PATCHED:
-        return
-
-    original = skins.__gather_inverse_bind_matrices
-
-    if getattr(original, "__sc_patched__", False):
-        _PATCHED = True
-        return
-
-    setattr(inverse_bind_matrices_hook, "__sc_patched__", True)
-    skins.__gather_inverse_bind_matrices = inverse_bind_matrices_hook
-
-    _PATCHED = True
-
-    print("[SC IO] Patched glTF __gather_inverse_bind_matrices")
+inverse_bind_matrices_gather = Patch(
+    "inverse bind matrices export",
+    module_path="io_scene_gltf2.blender.exp.skins",
+    target_method="__gather_inverse_bind_matrices",
+    function=inverse_bind_matrices_hook,
+)
