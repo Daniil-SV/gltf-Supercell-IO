@@ -17,7 +17,7 @@ from .importer.ui import draw_import
 from .importer import glTF2ImportUserExtension
 from .importer.patches import flatbuffer_glb, skinned_mesh
 from .com.utilities.patcher import register_patch, unregister_patch
-from .exporter.patches import inverse_bind_matrices_gather
+from .exporter.patches import inverse_bind_matrices_gather, traverse_gather
 from .com.editor.string_array import (
     StringItem,
     DirectoryStringItem,
@@ -70,7 +70,7 @@ classes = [
     AssetBrowserProperties,
 ]
 
-patches = [flatbuffer_glb, skinned_mesh, inverse_bind_matrices_gather]
+patches = [flatbuffer_glb, skinned_mesh, inverse_bind_matrices_gather, traverse_gather]
 
 
 def register():
@@ -115,6 +115,9 @@ def unregister():
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    for patch in patches:
+        unregister_patch(patch)
 
     del scene.glTFSupercellImporterProperties
     del scene.glTFSupercellExporterProperties

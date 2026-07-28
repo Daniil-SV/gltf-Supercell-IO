@@ -23,10 +23,6 @@ class CommonExporter(glTF2BaseExporterComponent):
         gltf.asset.generator += " | Supercell-IO Exporter by DaniilSV"
 
     def pre_export_hook(self, export_settings: dict):
-        # Export only deform bones
-        # Useful for optimization and debug purposes
-        export_settings["gltf_def_bones"] = True
-
         if not self.properties.legacy_materials:
             export_settings[glTF_material_extension_name] = []
 
