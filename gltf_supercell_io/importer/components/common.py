@@ -115,14 +115,19 @@ class CommonImporter(glTF2BaseImporterComponent):
 
         return list(result)
 
-    def restore_skin_bones(self, gltf: "glTFImporter"):
+    def restore_bones_skin_idx(self, gltf: "glTFImporter"):
+        """
+        This function walks the entire tree and explicitly sets the skinning index,
+        as well as saves the joints associated with the skins for future use.
+        """
         skins: list[Skin] = gltf.data.skins or []
         for i, skin in enumerate(skins):
             joints: list[int] = skin.joints or []
 
             def visit(idx: int):
                 node: "Node" = gltf.data.nodes[idx]
-                node.skin = i
+                if node.skin is None:
+                    node.skin = i
 
                 if node.name:
                     self.bone_nodes.add(node.name)
@@ -132,6 +137,122 @@ class CommonImporter(glTF2BaseImporterComponent):
 
             for joint in joints:
                 visit(joint)
+
+    def requires_nodes_reorder(self, gltf: "glTFImporter"):
+        # Should not happen if gltf doesn't have skin? idk
+        if len(gltf.data.skins) == 0:
+            return False
+
+        # Gather skin joints
+        skin_joints: set[int] = set()
+
+        def visit_skin(idx: int):
+            skin_joints.add(idx)
+
+            for children in gltf.data.nodes[idx].children or []:
+                visit_skin(children)
+
+        for skin in gltf.data.skins or []:
+            for idx in skin.joints or []:
+                visit_skin(idx)
+
+        # Check each node until we found mesh or bone
+        def visit(idx: int) -> tuple[bool, bool]:
+            node: "Node" = gltf.data.nodes[idx]
+
+            if idx in skin_joints:
+                return (False, True)
+
+            if node.mesh is not None:
+                return (True, False)
+
+            for children in node.children or []:
+                has_mesh, has_joint = visit(children)
+
+                if has_mesh or has_joint:
+                    return (has_mesh, has_joint)
+
+            return (False, False)
+
+        seen_skin = False
+        requires_reoder = False
+        for idx in range(len(gltf.data.nodes or [])):
+            has_mesh, has_skin = visit(idx)
+
+            # In normal cases skin should come first
+            if has_mesh and not seen_skin:
+                requires_reoder = True
+                break
+
+            if has_skin:
+                seen_skin = True
+
+        return requires_reoder
+
+    def reorder_nodes(self, gltf: "glTFImporter"):
+        """
+        Blender glTF importer is very picky about the order of nodes.
+        When importing, it initializes virtual nodes, which it then imports in tree descending order.
+        But there is a thing. If a mesh node comes first in glTF node array,
+        then this mesh node will come first in the virtual node's children list.
+        This can lead to cases where the mesh is initialized before the virtual bone nodes,
+        which have not even been initialized yet, leading to import crashes.
+        This function sorts the nodes so that joints associated with skins are at the very top.
+        """
+
+        # We should check if this is the case of incorrect order
+        if not self.requires_nodes_reorder(gltf):
+            return
+
+        # Gathering all mesh related nodes in ascending order
+        mesh_nodes: set[int] = set()
+
+        def visit(idx: int):
+            mesh_nodes.add(idx)
+
+            for i, node in enumerate(gltf.data.nodes or []):
+                if idx in (node.children or []):
+                    visit(i)
+
+        for i, node in enumerate(gltf.data.nodes or []):
+            if node.mesh is not None:
+                visit(i)
+
+        # Sorting by mesh relation
+        nodes = list(enumerate(gltf.data.nodes or []))
+        nodes.sort(key=lambda item: item[0] in mesh_nodes)
+        gltf.data.nodes = [node for _, node in nodes]
+
+        mapping = {old_idx: new_idx for new_idx, (old_idx, _) in enumerate(nodes)}
+
+        # Updating indices for other properties
+
+        # Nodes children
+        for node in gltf.data.nodes:
+            if node.children is None:
+                continue
+
+            node.children = [mapping[idx] for idx in node.children]
+
+        # Scenes
+        for scene in gltf.data.scenes or []:
+            if scene.nodes is None:
+                continue
+
+            scene.nodes = [mapping[idx] for idx in scene.nodes]
+
+        # Skins
+        for skin in gltf.data.skins or []:
+            if skin.joints is None:
+                continue
+
+            skin.joins = [mapping[idx] for idx in skin.joints]
+
+        # Animations
+        for animation in gltf.data.animations or []:
+            for channel in animation.channels:
+                if channel.target.node is not None:
+                    channel.target.node = mapping[channel.target.node]
 
     def do_final_fixups(self, gltf: "glTFImporter"):
         """
@@ -201,9 +322,9 @@ class CommonImporter(glTF2BaseImporterComponent):
                 ]
 
                 skins.append(Skin.from_dict({"joints": joints}))
-            else:
-                self.restore_skin_bones(gltf)
 
+            self.restore_bones_skin_idx(gltf)
+            self.reorder_nodes(gltf)
             if len(root_nodes) == 1:
                 for skin in skins:
                     skin.skeleton = root_nodes[0]

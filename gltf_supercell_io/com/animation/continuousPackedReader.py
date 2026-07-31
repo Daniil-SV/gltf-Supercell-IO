@@ -99,7 +99,7 @@ class OdinContinuousPackedReader(OdinPackedReader):
         return (translation, rotation, scale)
 
     def read_normalized_value(self) -> int | float:
-        result = self.normalized_transform_data[self.transform_index]
+        result = self.normalized_transform_data[self.transform_index].item()
         self.transform_index += 1
         if (self.elements_counter >= self.data_size):
             raise Exception("Transform index exceeded data size limit")
