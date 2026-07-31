@@ -2,7 +2,12 @@ import addon_utils
 from importlib import import_module
 from types import ModuleType
 
-REPOSITORIES = ["bl_ext.vscode_development", "bl_ext.blender_org"]
+REPOSITORIES = [
+    "bl_ext.vscode_development",
+    "bl_ext.blender_org",
+    "bl_ext.user_default",
+    "bl_ext.system",
+]
 MODULE_NAME = "gltf_image_converter"
 _candidates = [MODULE_NAME] + [".".join([repo, MODULE_NAME]) for repo in REPOSITORIES]
 
