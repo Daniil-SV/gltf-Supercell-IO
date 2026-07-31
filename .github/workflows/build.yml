@@ -10,6 +10,9 @@ env:
   CONVERTER_NAME: gltf_image_converter
   PLUGIN_NAME: gltf_supercell_io
 
+permissions:
+  contents: write
+
 jobs:
   setup:
     runs-on: ubuntu-latest
