@@ -23,15 +23,15 @@ class OdinAttributeType(IntEnum):
     @classmethod
     def to_attribute_name(cls, component_type) -> str:
         return {
-            OdinAttributeType.a_pos: 'POSITION',
-            OdinAttributeType.a_normal: 'NORMAL',
-            OdinAttributeType.a_boneindex: 'JOINTS_0',
-            OdinAttributeType.a_boneweights: 'WEIGHTS_0',
-            OdinAttributeType.a_uv0: 'TEXCOORD_0',
-            OdinAttributeType.a_uv1: 'TEXCOORD_1',
-            OdinAttributeType.a_color: 'COLOR_0',
-            OdinAttributeType.a_color1: 'COLOR_1',
-            OdinAttributeType.a_tangent: 'TANGENT',
+            OdinAttributeType.a_pos: "POSITION",
+            OdinAttributeType.a_normal: "NORMAL",
+            OdinAttributeType.a_boneindex: "JOINTS_0",
+            OdinAttributeType.a_boneweights: "WEIGHTS_0",
+            OdinAttributeType.a_uv0: "TEXCOORD_0",
+            OdinAttributeType.a_uv1: "TEXCOORD_1",
+            OdinAttributeType.a_color: "COLOR_0",
+            OdinAttributeType.a_color1: "COLOR_1",
+            OdinAttributeType.a_tangent: "TANGENT",
             # OdinAttributeType.a_colorAdd: 'COLOR_1',
             # OdinAttributeType.a_colorMul: 'COLOR_2',
         }[component_type]
@@ -47,7 +47,7 @@ class OdinAttributeType(IntEnum):
             OdinAttributeType.a_uv1: True,
             OdinAttributeType.a_color: False,
             OdinAttributeType.a_color1: False,
-            OdinAttributeType.a_tangent: False
+            OdinAttributeType.a_tangent: False,
         }[component_type]
 
 

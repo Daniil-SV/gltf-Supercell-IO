@@ -3,6 +3,7 @@ from ...com.utilities.patcher import Patch
 from ..components.component import is_valid_scgltf
 from mathutils import Vector, Quaternion
 
+
 def move_skinned_meshes(gltf):
     """
     In glTF, where in the node hierarchy a skinned mesh is instantiated has

@@ -26,18 +26,19 @@ class OdinPackedReader(OdinAnimationReader):
         )
 
         self.used_nodes = [node.get("nodeIndex") or 0 for node in self.nodes]
-        self.flags = [OdinAnimationFlags(
-            node.get("flags") or 0) for node in self.nodes]
+        self.flags = [OdinAnimationFlags(node.get("flags") or 0) for node in self.nodes]
 
         frametime = [animation.has_frametime for animation in self.flags]
         self.frame_stride = 0
-        if (True in frametime and False in frametime):
+        if True in frametime and False in frametime:
             raise Exception(
-                "Looks like this animation file uses mixed way of using frametime which is not supported")
+                "Looks like this animation file uses mixed way of using frametime which is not supported"
+            )
 
-        elif (True not in frametime):
+        elif True not in frametime:
             self.frame_stride = sum(
-                [animation.elements_count for animation in self.flags])
+                [animation.elements_count for animation in self.flags]
+            )
 
         self.data = []
         self.transform_index = 0
@@ -71,26 +72,40 @@ class OdinPackedReader(OdinAnimationReader):
 
         # Step 2. Denormalizing values and filling buffers with values in raw view
         translation, rotation, scale = self.denormalize_transforms(
-            total_frame_count, flags, (translation_multiplier,
-                                       scale_multiplier, ),
-            bTranslation, bRotation, bScale,
-            nTranslation, nRotation, nScale  # type: ignore
+            total_frame_count,
+            flags,
+            (
+                translation_multiplier,
+                scale_multiplier,
+            ),
+            bTranslation,
+            bRotation,
+            bScale,
+            nTranslation,
+            nRotation,
+            nScale,  # type: ignore
         )
 
         self.data.append((translation, rotation, scale))
         self.local_node_offset = 0
         self.node_base_data_offset = 0
 
-    def denormalize_transforms(self,
-                               frame_count: int, flags: OdinAnimationFlags, multiplier: Tuple[int, int],
-                               bTranslation: list, bRotation: list, bScale: list,  # Base transform
-                               nTranslation: list, nRotation: list, nScale: list  # Delta transforms
-                               ):
+    def denormalize_transforms(
+        self,
+        frame_count: int,
+        flags: OdinAnimationFlags,
+        multiplier: Tuple[int, int],
+        bTranslation: list,
+        bRotation: list,
+        bScale: list,  # Base transform
+        nTranslation: list,
+        nRotation: list,
+        nScale: list,  # Delta transforms
+    ):
         translation_multiplier, scale_multiplier = multiplier
 
         rotation = [
-            np.zeros((frame_count), dtype=np.float32)
-            for _ in range(RotationChannels)
+            np.zeros((frame_count), dtype=np.float32) for _ in range(RotationChannels)
         ]
 
         translation = [
@@ -99,16 +114,16 @@ class OdinPackedReader(OdinAnimationReader):
         ]
 
         scale = [
-            np.full((frame_count), 1, dtype=np.float32)
-            for _ in range(ScaleChannels)
+            np.full((frame_count), 1, dtype=np.float32) for _ in range(ScaleChannels)
         ]
 
         for frame_index in range(frame_count):
             for i in range(TranslationChannels):
                 value = float(bTranslation[i])
                 if flags.has_translation:
-                    transform = float(
-                        nTranslation[i][frame_index]) * translation_multiplier
+                    transform = (
+                        float(nTranslation[i][frame_index]) * translation_multiplier
+                    )
                     value += transform
                 translation[i][frame_index] = value
 
@@ -122,8 +137,7 @@ class OdinPackedReader(OdinAnimationReader):
             for i in range(ScaleChannels):
                 value = float(bScale[i])
                 if flags.has_scale or flags.has_separate_scale:
-                    transform = float(
-                        nScale[i][frame_index]) * scale_multiplier
+                    transform = float(nScale[i][frame_index]) * scale_multiplier
                     value += transform
 
                 scale[i][frame_index] = value
@@ -134,41 +148,37 @@ class OdinPackedReader(OdinAnimationReader):
         node_elements_counter = 0
 
         rotation = [
-            np.zeros((frame_count), dtype=np.int16)
-            for _ in range(RotationChannels)
+            np.zeros((frame_count), dtype=np.int16) for _ in range(RotationChannels)
         ]
 
         translation = [
-            np.zeros((frame_count), dtype=np.int16)
-            for _ in range(TranslationChannels)
+            np.zeros((frame_count), dtype=np.int16) for _ in range(TranslationChannels)
         ]
 
-        scale = [
-            np.zeros((frame_count), dtype=np.int16)
-            for _ in range(ScaleChannels)
-        ]
+        scale = [np.zeros((frame_count), dtype=np.int16) for _ in range(ScaleChannels)]
 
         for frame_index in range(frame_count):
-            if (not flags.has_frametime):
+            if not flags.has_frametime:
                 self.transform_index = (
-                    self.frame_stride * frame_index) + node_elements_counter
+                    self.frame_stride * frame_index
+                ) + node_elements_counter
 
-            if (flags.has_frametime):
+            if flags.has_frametime:
                 # Skip for now. Idk why it exist at all. Maybe for compatibility with gltf animations
                 frametime = self.read_normalized_value()
 
-            if (flags.has_rotation):
+            if flags.has_rotation:
                 for i in range(RotationChannels):
                     rotation[i][frame_index] = self.read_normalized_value()
 
-            if (flags.has_translation):
+            if flags.has_translation:
                 for i in range(TranslationChannels):
                     translation[i][frame_index] = self.read_normalized_value()
 
-            if (flags.has_scale and flags.has_separate_scale):
+            if flags.has_scale and flags.has_separate_scale:
                 for i in range(ScaleChannels):
                     scale[i][frame_index] = self.read_normalized_value()
-            elif (flags.has_scale):
+            elif flags.has_scale:
                 value = self.read_normalized_value()
                 for i in range(ScaleChannels):
                     scale[i][frame_index] = value
@@ -181,22 +191,13 @@ class OdinPackedReader(OdinAnimationReader):
         return result
 
     def read_base_translation(self) -> List[int]:
-        return [
-            self.read_base_value()
-            for _ in range(TranslationChannels)
-        ]
+        return [self.read_base_value() for _ in range(TranslationChannels)]
 
     def read_base_rotation(self) -> List[int]:
-        return [
-            self.read_base_value()
-            for _ in range(RotationChannels)
-        ]
+        return [self.read_base_value() for _ in range(RotationChannels)]
 
     def read_base_scale(self) -> List[int]:
-        return [
-            self.read_base_value()
-            for _ in range(ScaleChannels)
-        ]
+        return [self.read_base_value() for _ in range(ScaleChannels)]
 
     def read_base_value(self) -> int:
         idx = self.node_base_data_offset + self.local_node_offset

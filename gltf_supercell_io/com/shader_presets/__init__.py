@@ -22,10 +22,10 @@ class ShaderPresets:
 
             case ShaderPresetType.BRAWL_STARS_LEGACY:
                 preset = BrawlStarsLegacy
-                
+
             case ShaderPresetType.BSDF:
                 preset = BsdfPreset
-                
+
             case _:
                 raise NotImplementedError()
 

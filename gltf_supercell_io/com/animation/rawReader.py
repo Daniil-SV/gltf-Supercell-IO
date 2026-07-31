@@ -15,17 +15,18 @@ class OdinRawAnimationReader(OdinAnimationReader):
         nodes_per_keyframe: list[int] = animation.get(
             "nodesNumberPerKeyframe"
         )  # type: ignore
-        if (self.keyframe_mapping):
-            self.keyframe_mapping = [num for i, num in
-                                     enumerate(self.keyframe_mapping)
-                                     for _ in range(nodes_per_keyframe[i])]
+        if self.keyframe_mapping:
+            self.keyframe_mapping = [
+                num
+                for i, num in enumerate(self.keyframe_mapping)
+                for _ in range(nodes_per_keyframe[i])
+            ]
 
-        self.buffer = BinaryData.decode_accessor(
-            gltf, animation.get("accessor")
-        )
+        self.buffer = BinaryData.decode_accessor(gltf, animation.get("accessor"))
 
         self.translation: list[list[list[float]]] = [
-            [[] for _ in range(TranslationChannels)] for _ in range(len(self.used_nodes))
+            [[] for _ in range(TranslationChannels)]
+            for _ in range(len(self.used_nodes))
         ]
         self.rotation: list[list[list[float]]] = [
             [[] for _ in range(RotationChannels)] for _ in range(len(self.used_nodes))
@@ -35,26 +36,28 @@ class OdinRawAnimationReader(OdinAnimationReader):
         ]
 
     def read(self):
-        keyframes_total = sum(
-            self.keyframe_mapping) if self.keyframe_mapping else self.keyframe_count
+        keyframes_total = (
+            sum(self.keyframe_mapping) if self.keyframe_mapping else self.keyframe_count
+        )
 
         # Position + Quaternion Rotation + Scale
         frame_transform_length = 3 + 4 + 3
-        if (self.keyframe_mapping):
+        if self.keyframe_mapping:
             remapped = np.reshape(
-                self.buffer, (keyframes_total, frame_transform_length))
-            data = np.split(remapped, np.cumsum(
-                self.keyframe_mapping)[:-1])  # type: ignore
+                self.buffer, (keyframes_total, frame_transform_length)
+            )
+            data = np.split(
+                remapped, np.cumsum(self.keyframe_mapping)[:-1]
+            )  # type: ignore
         else:
-            data = np.reshape(self.buffer, (len(
-                self.used_nodes), self.keyframe_count, frame_transform_length))
+            data = np.reshape(
+                self.buffer,
+                (len(self.used_nodes), self.keyframe_count, frame_transform_length),
+            )
 
         for node_index in range(len(self.used_nodes)):
             for frame_index in range(self.node_keyframes(node_index)):
-                t, r, s = np.split(
-                    data[node_index][frame_index],
-                    [3, 7]
-                )
+                t, r, s = np.split(data[node_index][frame_index], [3, 7])
 
                 for i in range(TranslationChannels):
                     self.translation[node_index][i].append(t[i])
@@ -66,7 +69,7 @@ class OdinRawAnimationReader(OdinAnimationReader):
                     self.scale[node_index][i].append(s[i])
 
     def node_keyframes(self, node_idx: int):
-        if (self.keyframe_mapping):
+        if self.keyframe_mapping:
             return self.keyframe_mapping[node_idx]
         return self.keyframe_count
 

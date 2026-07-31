@@ -3,7 +3,8 @@ from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 from .variables import ScShaderVariables, ShaderProperty
 from enum import IntEnum
 from typing import TypeVar, Any, Type, Optional
-T = TypeVar('T', bound='ShaderProperty')
+
+T = TypeVar("T", bound="ShaderProperty")
 
 
 class ScBlendMode(IntEnum):
@@ -38,7 +39,7 @@ class ScShaderMaterial:
 
     def has_constant(self, key: str) -> bool:
         """Check if constant is used"""
-        if (key in self._constants):
+        if key in self._constants:
             self._used_constants.add(key)
             return True
 
@@ -48,11 +49,13 @@ class ScShaderMaterial:
         """Add constant to material"""
         self._constants.append(key)
 
-    def get_property(self, key: str, desired_type: Optional[Type[T]] = None) -> Optional[T]:
+    def get_property(
+        self, key: str, desired_type: Optional[Type[T]] = None
+    ) -> Optional[T]:
         """Get property from material"""
-        if (key in self._variables.properties):
+        if key in self._variables.properties:
             result = self._variables.properties[key]
-            if (desired_type is not None and not isinstance(result, desired_type)):
+            if desired_type is not None and not isinstance(result, desired_type):
                 return None
 
             self._used_variables.add(key)
@@ -68,12 +71,20 @@ class ScShaderMaterial:
     @property
     def unused_constants(self) -> List[str]:
         """Get unused constants"""
-        return [constant for constant in self._constants if constant not in self._used_constants]
+        return [
+            constant
+            for constant in self._constants
+            if constant not in self._used_constants
+        ]
 
     @property
     def unused_variables(self) -> List[Tuple[str, ShaderProperty]]:
         """Get unused variables"""
-        return [(key, prop) for key, prop in self._variables.properties.items() if key not in self._used_variables]
+        return [
+            (key, prop)
+            for key, prop in self._variables.properties.items()
+            if key not in self._used_variables
+        ]
 
     def from_dict(self, gltf: glTFImporter, data: Dict[str, Any]):
         """Load material from dictionary"""
@@ -90,7 +101,7 @@ class ScShaderMaterial:
             "constants": self._constants,
             "name": self.name,
             "shader": self.shader_name or "uber",
-            "variables": self._variables.to_typed_dict()
+            "variables": self._variables.to_typed_dict(),
         }
 
     def to_dict(self):
@@ -101,5 +112,5 @@ class ScShaderMaterial:
             "name": self.name,
             "sc_material": True,
             "shader": self.shader_name or "uber",
-            "variables": self._variables.to_dict()
+            "variables": self._variables.to_dict(),
         }

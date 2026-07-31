@@ -6,7 +6,7 @@ from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
 
 from io_scene_gltf2.io.exp.binary_data import BinaryData as ExportBinaryData
-from io_scene_gltf2.blender.exp.accessors import gather_accessor
+from ...com.utilities.compatibility import gather_accessor
 from io_scene_gltf2.blender.imp.vnode import VNode
 
 if TYPE_CHECKING:

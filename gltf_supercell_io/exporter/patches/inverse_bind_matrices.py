@@ -1,7 +1,7 @@
 import bpy
 from mathutils import Matrix, Vector
 
-from io_scene_gltf2.blender.exp.accessors import gather_accessor
+from ...com.utilities.compatibility import gather_accessor
 from io_scene_gltf2.io.exp.binary_data import BinaryData
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
 from ...com.utilities.patcher import Patch
@@ -71,29 +71,15 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
                 inverse_matrices.append(matrix[row][column])
 
     binary_data = BinaryData.from_list(inverse_matrices, ComponentType.Float)
-
-    major, minor, _ = bpy.app.version
-    if major >= 5 and minor >= 2:
-        return gather_accessor(
-            binary_data,
-            ComponentType.Float,
-            len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
-            None,
-            None,
-            DataType.Mat4,  # type: ignore
-            None,
-            export_settings,
-        )
-    else:
-        return gather_accessor(
-            binary_data,
-            ComponentType.Float,
-            len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
-            None,
-            None,
-            DataType.Mat4,  # type: ignore
-            export_settings,
-        )
+    return gather_accessor(
+        binary_data,
+        ComponentType.Float,
+        len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
+        None,
+        None,
+        DataType.Mat4,  # type: ignore
+        export_settings,
+    )
 
 
 inverse_bind_matrices_gather = Patch(

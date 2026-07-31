@@ -1,12 +1,6 @@
-import os
 import zipfile
-from pathlib import Path
 from fnmatch import fnmatch
-
-DIRNAME = os.path.dirname(os.path.abspath(__file__))
-INPUT_FOLDER = os.path.join(DIRNAME, "../", "gltf_supercell_io")
-OUTPUT_FOLDER = os.path.join(DIRNAME, "../", "dist")
-OUTPUT_NAME = os.path.join(OUTPUT_FOLDER, "gltf_supercell_io.zip")
+from pathlib import Path
 
 
 def load_ignore_patterns(root: Path):
@@ -48,10 +42,10 @@ def should_ignore(path: Path, root: Path, patterns):
     return False
 
 
-def zip_folder(source_dir: str, output_zip: str):
+def zip_folder(source_dir: str, output_zip: str, additional_globs: list[str] = []):
     root = Path(source_dir).resolve()
     root_name = root.name
-    patterns = load_ignore_patterns(root)
+    patterns = load_ignore_patterns(root) + additional_globs
 
     with zipfile.ZipFile(output_zip, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in root.rglob("*"):
@@ -59,12 +53,8 @@ def zip_folder(source_dir: str, output_zip: str):
                 if should_ignore(path, root, patterns):
                     continue
 
+                print(f"Packaging {path}")
                 archive_path = Path(root_name) / path.relative_to(root)
                 zf.write(path, archive_path.as_posix())
 
     print(f"Archive created: {output_zip}")
-
-
-if __name__ == "__main__":
-    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    zip_folder(INPUT_FOLDER, OUTPUT_NAME)

@@ -1,4 +1,3 @@
-import bpy
 from .node import ShaderNodeScNode
 
 

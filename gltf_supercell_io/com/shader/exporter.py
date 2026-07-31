@@ -261,7 +261,9 @@ class ShaderExporter:
 
     def export_modifiers(self):
         if "ScMultiplyModifier" in self.modifiers:
-            self.sc_material.blend_mode = ScBlendMode.SCREEN # TODO: Rename modifier and add support for the rest of blend modes
+            self.sc_material.blend_mode = (
+                ScBlendMode.SCREEN
+            )  # TODO: Rename modifier and add support for the rest of blend modes
 
     def export_material(self):
         """Export the material to dictionary"""
