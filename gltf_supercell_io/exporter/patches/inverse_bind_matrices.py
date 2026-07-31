@@ -7,7 +7,7 @@ from io_scene_gltf2.io.com.constants import ComponentType, DataType
 from ...com.utilities.patcher import Patch
 
 
-def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict):
+def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
     blender_armature_object = (
         export_settings["vtree"].nodes[armature_uuid].blender_object
     )
@@ -71,15 +71,29 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict):
                 inverse_matrices.append(matrix[row][column])
 
     binary_data = BinaryData.from_list(inverse_matrices, ComponentType.Float)
-    return gather_accessor(
-        binary_data,
-        ComponentType.Float,
-        len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
-        None,
-        None,
-        DataType.Mat4,  # type: ignore
-        export_settings,
-    )
+
+    major, minor, _ = bpy.app.version
+    if major >= 5 and minor >= 2:
+        return gather_accessor(
+            binary_data,
+            ComponentType.Float,
+            len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
+            None,
+            None,
+            DataType.Mat4,  # type: ignore
+            None,
+            export_settings,
+        )
+    else:
+        return gather_accessor(
+            binary_data,
+            ComponentType.Float,
+            len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
+            None,
+            None,
+            DataType.Mat4,  # type: ignore
+            export_settings,
+        )
 
 
 inverse_bind_matrices_gather = Patch(

@@ -29,9 +29,9 @@ def load_ignore_patterns(root: Path):
 def should_ignore(path: Path, root: Path, patterns):
     rel_path = path.relative_to(root)
     rel_posix = rel_path.as_posix()
-    if (rel_posix == ".distignore"):
+    if rel_posix == ".distignore":
         return True
-    
+
     for pattern in patterns:
         if pattern.endswith("/"):
             dir_name = pattern.rstrip("/")
