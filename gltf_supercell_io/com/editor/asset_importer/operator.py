@@ -143,6 +143,11 @@ class ASSETS_PT_panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Supercell"
+    
+    @classmethod
+    def poll(cls, context) -> bool:
+        # Render only when has access to internet
+        return bpy.app.online_access
 
     def draw(self, context):
         layout = self.layout

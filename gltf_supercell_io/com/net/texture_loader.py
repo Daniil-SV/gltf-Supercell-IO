@@ -32,6 +32,9 @@ client = Client(base_url="https://api.sc-workshop.com")
 
 def _fetch_texture_data(low: str, high: str) -> bytes | None:
     global client
+    if not bpy.app.online_access:
+        return None
+
     response = post_v1_cdn.sync(client=client, high=high, low=low)
 
     if isinstance(response, ErrorResponse):

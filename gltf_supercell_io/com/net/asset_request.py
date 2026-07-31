@@ -1,3 +1,4 @@
+import bpy
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
@@ -90,6 +91,9 @@ _cached_servers: list[Server] | None = None
 
 def list_assets(data: AssetRequest) -> list[str] | None:
     global _cached_assets
+    if not bpy.app.online_access:
+        return None
+
     cached = _cached_assets.get(data)
     if cached is not None:
         return cached
@@ -114,6 +118,8 @@ def list_assets(data: AssetRequest) -> list[str] | None:
 
 def list_versions(data: AssetRequest) -> list[dict] | None:
     global _cached_versions
+    if not bpy.app.online_access:
+        return None
 
     cached = _cached_versions.get(data)
     if cached is not None:
@@ -140,6 +146,9 @@ def list_versions(data: AssetRequest) -> list[dict] | None:
 
 def list_servers() -> list[Server] | None:
     global _cached_servers
+    if not bpy.app.online_access:
+        return None
+
     if _cached_servers is not None:
         return _cached_servers
 
@@ -162,6 +171,9 @@ def list_servers() -> list[Server] | None:
 
 
 def download_asset_detailed(request: AssetRequest) -> bytes | None:
+    if not bpy.app.online_access:
+        return None
+
     request.count = 1
     request.page = 0
     result = requests.get(
