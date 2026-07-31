@@ -1,0 +1,200 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+env:
+  CONVERTER_NAME: gltf_image_converter
+  PLUGIN_NAME: gltf_supercell_io
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check-tag.outputs.tag }}
+    steps:
+      - name: Check tag
+        id: check-tag
+        run: |
+          if [[ ${{ github.ref }} == refs/tags/v* ]]; then
+            TAG=$(echo ${{ github.ref }} | sed -e "s#refs/tags/##g")
+          else
+            TAG=$(echo ${{ github.sha }} | cut -c1-7)
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Create Release Draft
+        id: create-release
+        if: env.ACT != 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.check-tag.outputs.tag }}
+          name: ${{ steps.check-tag.outputs.tag }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+
+  build-plugin:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build plugin zip
+        shell: bash
+        run: |
+          mkdir -p dist
+          python scripts/build.py
+
+      - name: Tag zip
+        shell: bash
+        run: |
+          cd dist
+          mv ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}_${{ needs.setup.outputs.tag }}.zip
+          ls -la
+
+      - name: Upload Release Asset
+        if: env.ACT != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not available, skipping upload"
+            exit 0
+          fi
+          gh release upload ${{ needs.setup.outputs.tag }} \
+            dist/${{ env.PLUGIN_NAME }}_${{ needs.setup.outputs.tag }}.zip \
+            --clobber
+
+  build-converter:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            arch_suffix: -x64
+          - os: windows-11-arm
+            arch_suffix: -arm64
+          - os: ubuntu-latest
+            arch_suffix: -x64
+          - os: macos-latest
+            arch_suffix: ""
+    runs-on: ${{ matrix.os }}
+    needs: setup
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang
+
+      - name: Install Clang (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install llvm
+          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Clang (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          which clang clang++
+          clang --version
+          clang++ --version
+
+      - name: Setup CMake/Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Setup MSVC (Windows only)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch_suffix == '-arm64' && 'arm64' || 'x64' }}
+
+      - name: Configure CMake (Clang + Ninja, Linux/macOS)
+        if: runner.os != 'Windows'
+        run: rm -rf ${{ env.CONVERTER_NAME }}/library/build && cmake -G Ninja -S ${{ env.CONVERTER_NAME }}/library -B ${{ env.CONVERTER_NAME }}/library/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DZSTD_BUILD_SHARED=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        shell: bash
+
+      - name: Configure CMake (MSVC + Ninja, Windows)
+        if: runner.os == 'Windows'
+        run: rm -rf ${{ env.CONVERTER_NAME }}/library/build && cmake -G Ninja -S ${{ env.CONVERTER_NAME }}/library -B ${{ env.CONVERTER_NAME }}/library/build -DCMAKE_BUILD_TYPE=Release
+        shell: cmd
+
+      - name: Build shared library
+        run: cmake --build ${{ env.CONVERTER_NAME }}/library/build --parallel
+        shell: bash
+
+      - name: Locate and copy shared library to bin
+        shell: bash
+        run: |
+          set -eux
+          BIN="${{ env.CONVERTER_NAME }}/bin"
+          mkdir -p "$BIN"
+          # Ninja is single-config, artifacts land directly in build/
+          FOUND=""
+          for cand in \
+            "${{ env.CONVERTER_NAME }}/library/build/TextureLoader.dll" \
+            "${{ env.CONVERTER_NAME }}/library/build/libTextureLoader.so" \
+            "${{ env.CONVERTER_NAME }}/library/build/libTextureLoader.dylib" \
+            "${{ env.CONVERTER_NAME }}/library/build/TextureLoader.so" \
+            "${{ env.CONVERTER_NAME }}/library/build/TextureLoader.dylib"; do
+            if [ -f "$cand" ]; then FOUND="$cand"; break; fi
+          done
+          if [ -z "$FOUND" ]; then
+            echo "Shared library not found, listing build dir:" && find "${{ env.CONVERTER_NAME }}/library/build" -maxdepth 2 -type f -iname "*textureloader*"
+            exit 1
+          fi
+          # Normalize names to match bin/loader.py expectations
+          case "$FOUND" in
+            *.dll) cp "$FOUND" "$BIN/TextureLoader.dll" ;;
+            *.so)  cp "$FOUND" "$BIN/TextureLoader.so"  ;;
+            *.dylib) cp "$FOUND" "$BIN/TextureLoader.dylib" ;;
+          esac
+          ls -la "$BIN"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Build converter zip
+        shell: bash
+        run: |
+          mkdir -p dist
+          python scripts/build_image_converter.py
+
+      - name: Tag zip with platform
+        shell: bash
+        run: |
+          cd dist
+          mv ${{ env.CONVERTER_NAME }}.zip ${{ env.CONVERTER_NAME }}_${{ needs.setup.outputs.tag }}_${{ runner.os }}${{ matrix.arch_suffix }}.zip
+          ls -la
+
+      - name: Upload Release Asset
+        if: env.ACT != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "gh CLI not available, skipping upload"
+            exit 0
+          fi
+          gh release upload ${{ needs.setup.outputs.tag }} \
+            dist/${{ env.CONVERTER_NAME }}_${{ needs.setup.outputs.tag }}_${{ runner.os }}${{ matrix.arch_suffix }}.zip \
+            --clobber
