@@ -80,6 +80,7 @@ jobs:
             --clobber
 
   build-converter:
+    if: false  # Temporary disabled, requires - ASTC universal lib build setup on MacOS, flatc installing on Windows, LZHAM proper threading setup on Windows Arm 
     strategy:
       fail-fast: false
       matrix:
