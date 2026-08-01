@@ -1,6 +1,6 @@
 import bpy
 import os
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING, Optional
 from .helpers import get_version_sha, tempdir
 from .worker import RefreshRequest, update_asset_browser
 from ...net.asset_request import (
@@ -73,6 +73,56 @@ class ASSETS_OT_import_api(bpy.types.Operator):
     version: bpy.props.StringProperty()
     filepath: bpy.props.StringProperty()
 
+    @staticmethod
+    def download_asset(
+        filepath: str, game: Optional[str] = None, version: Optional[str] = None
+    ) -> Path | None:
+        """Assets import API that can be called directly with provided data
+
+        Args:
+            filepath (str): Asset path (e.g sc3d/model_geo.glb)
+            game (str, optional): Game name (e.g BS). Defaults to value from Asset Browser properties.
+            version (str, optional): Version name (e.g 67.677.1). Defaults to value from Asset Browser properties.
+
+        Returns:
+            Path | None: Downloaded file path in temporary folder. Returns none if downloading is failed.
+        """
+        props = cast(
+            "AssetBrowserProperties", cast(Any, bpy.context.scene).sc_asset_browser
+        )
+
+        target_game = game if game is not None else props.game
+        target_version = version if version is not None else props.version
+
+        # Getting selected version hash
+        versions = list_versions(AssetRequest(game_server=target_game))
+        if versions is None:
+            return None
+
+        hash = get_version_sha(target_version)
+
+        # Getting item and creating temp path
+        output_path: Path = Path(tempdir) / hash / filepath
+        if not os.path.exists(output_path):
+            # Downloading file
+            data = download_asset_detailed(
+                AssetRequest(
+                    search=filepath,
+                    game_server=target_game,
+                    version=target_version,
+                )
+            )
+
+            if data is None:
+                return None
+
+            # Saving to temp
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, "wb") as file:
+                file.write(data)
+
+        return output_path
+
     def execute(self, context):  # type: ignore
         props = cast(
             "AssetBrowserProperties", cast(Any, context.scene).sc_asset_browser
@@ -80,30 +130,12 @@ class ASSETS_OT_import_api(bpy.types.Operator):
 
         props.currently_importing = True
         # Getting selected version hash
-        versions = list_versions(AssetRequest(game_server=self.game))
-        if versions is None:
-            self.report({"ERROR"}, "Failed to fetch versions")
+        filepath = ASSETS_OT_import_api.download_asset(
+            self.filepath, game=self.game, version=self.version
+        )
+        if filepath is None:
+            self.report({"ERROR"}, "Failed to download file")
             return {"CANCELLED"}
-
-        hash = get_version_sha(self.version)
-
-        # Getting item and creating temp path
-        filepath: Path = Path(tempdir) / hash / self.filepath
-        if not os.path.exists(filepath):
-            # Downloading file
-            data = download_asset_detailed(
-                AssetRequest(
-                    search=self.filepath, game_server=self.game, version=self.version
-                )
-            )
-            if data is None:
-                self.report({"ERROR"}, "Failed to download file")
-                return {"CANCELLED"}
-
-            # Saving to temp
-            filepath.parent.mkdir(parents=True, exist_ok=True)
-            with open(filepath, "wb") as file:
-                file.write(data)
 
         bpy.ops.import_scene.gltf(filepath=str(filepath))
         props.currently_importing = False
@@ -143,7 +175,7 @@ class ASSETS_PT_panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Supercell"
-    
+
     @classmethod
     def poll(cls, context) -> bool:
         # Render only when has access to internet

@@ -29,6 +29,7 @@ fps_source_items = (
     ("CUSTOM", "Custom", "The sequence is resampled to a custom frame rate", 2),
 )
 
+
 class glTFSupercellTextureOverride(PropertyGroup):
     name: StringProperty(description="Name of overridable texture e.g diffuseTex2D")
     path: StringProperty(description="Texture path to override with")
@@ -86,7 +87,13 @@ class glTFSupercellImporterProperties(PropertyGroup):
 
     texture_override: CollectionProperty(
         type=glTFSupercellTextureOverride,
-        description="An array of key/value-like objects that can be used using script to override some sc materials inputs (like skins.csv from brawl stars)",
+        description="An array of key/value-like objects that can be used using script to override some sc materials inputs (like skins.csv from Brawl Stars)",
+    )
+
+    material_override: StringProperty(
+        name="Materials file",
+        description="Path to external .glb/.scw material file to override materials from",
+        default="",
     )
 
     apply_animation: BoolProperty(
@@ -115,6 +122,7 @@ def draw_import(context: Context, layout: UILayout):
     body.prop(props, "fps_source")
     if props.fps_source == "CUSTOM":
         body.prop(props, "fps_custom")
+    body.prop(props, "material_override")
 
     body.prop(props, "single_skeleton")
     body.prop(props, "better_settings")
