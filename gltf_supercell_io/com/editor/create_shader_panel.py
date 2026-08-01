@@ -2,7 +2,7 @@ import bpy
 from bpy.types import Panel, Operator
 from ..shader.loader import LibraryLoader
 from ..shader_presets import ShaderPresets, ShaderPresetType
-from ..utilities import ShaderUtils
+from ..utilities.shader import ShaderUtils
 
 
 class SHADER_OT_SC_create_shader(Operator):

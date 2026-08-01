@@ -69,8 +69,9 @@ class OdinContinuousPackedReader(OdinPackedReader):
                 #    self.transform_index = (self.frame_stride * frame_index) + node_elements_counter
 
                 if flags.has_frametime:
+                    # Probably value of frametime?
                     # Skip for now. Idk why it exist at all. Maybe for compatibility with gltf animations
-                    frametime = self.read_normalized_value()
+                    self.read_normalized_value()
 
                 if flags.has_rotation:
                     for i in range(RotationChannels):

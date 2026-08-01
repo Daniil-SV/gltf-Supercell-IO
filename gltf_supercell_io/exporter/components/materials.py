@@ -2,7 +2,7 @@ import bpy
 
 from .component import glTF2BaseExporterComponent
 
-from ...com.utilities import ShaderUtils
+from ...com.utilities.shader import ShaderUtils
 from ...com.shader.nodes import ShaderNodeScShader, ShaderNodeScUtility
 from ...com.shader.exporter import ShaderExporter
 from ...com import glTF_material_extension_name

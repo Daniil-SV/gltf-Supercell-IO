@@ -23,7 +23,7 @@ from ..materials.variables import (
     ShaderBooleanProperty,
     ShaderProperty,
 )
-from ..utilities import ShaderUtils
+from ..utilities.shader import ShaderUtils
 from .loader import LibraryLoader
 from ...preferences import get_prefs
 from ..net import texture_loader

@@ -83,28 +83,34 @@ gltf_schema = {
         {
             "_type": flat.Animation,
             "name": str,
-            "channels": [{
-                "_type": flat.AnimationChannel,
-                "sampler": int,
-                "target": {
-                    "_type": flat.AnimationChannelTarget,
-                    "node": int,
-                    "path": AnimationChannelTargetPath,
+            "channels": [
+                {
+                    "_type": flat.AnimationChannel,
+                    "sampler": int,
+                    "target": {
+                        "_type": flat.AnimationChannelTarget,
+                        "node": int,
+                        "path": AnimationChannelTargetPath,
+                        "extensions": bytes,
+                        "extras": bytes,
+                    },
                     "extensions": bytes,
                     "extras": bytes,
-                },
-                "extensions": bytes,
-                "extras": bytes,
-            }],
-            "samplers": [{
-                "_type": flat.AnimationSampler,
-                "input": int,
-                "interpolation": (AnimationSamplerInterpolationAlgorithm, AnimationSamplerInterpolationAlgorithm.LINEAR),
-                "output": int,
-                "extensions": bytes,
-                "extras": bytes,
-            }],
-
+                }
+            ],
+            "samplers": [
+                {
+                    "_type": flat.AnimationSampler,
+                    "input": int,
+                    "interpolation": (
+                        AnimationSamplerInterpolationAlgorithm,
+                        AnimationSamplerInterpolationAlgorithm.LINEAR,
+                    ),
+                    "output": int,
+                    "extensions": bytes,
+                    "extras": bytes,
+                }
+            ],
             "extensions": bytes,
             "extras": bytes,
         }
@@ -274,7 +280,7 @@ gltf_schema = {
             "extras": bytes,
         }
     ],
-    "scene": int
+    "scene": int,
 }
 
 #! ---------------- Deserializing ----------------
@@ -371,40 +377,40 @@ def deserialize_flexbuffer(data: np.ndarray) -> Any:
     data_array = bytearray(data)
     try:
         return flexbuffers.Loads(data_array)
-    except:
+    except Exception:
         pass
 
 
 def deserialize_array(buffer: Any, key: str, schema: Any) -> list | None:
     # List of numbers
-    if schema == int or schema == float:
+    if schema is int or schema is float:
         number_array: np.ndarray = getattr(buffer, f"{key}AsNumpy")()
         if isinstance(number_array, int) and number_array == 0:
             return None
         return number_array.tolist()
 
     # Structs | strings
-    elif isinstance(schema, dict) or schema == str:
+    elif isinstance(schema, dict) or schema is str:
         object_number = getattr(buffer, f"{key}Length")()
-        if (object_number == 0):
+        if object_number == 0:
             return None
 
         result = []
         for i in range(object_number):
             object_buffer = getattr(buffer, key)(i)
-            if (schema == str):
-                result.append(bytes(object_buffer).decode('utf8'))
+            if schema is str:
+                result.append(bytes(object_buffer).decode("utf8"))
             else:
                 result.append(deserialize_flatbuffer(object_buffer, schema))
 
         return result
 
 
-def deserialize_flatbuffer(buffer: Any, schema: dict, clean: bool = False) -> dict:
+def deserialize_flatbuffer(buffer: Any, schema: Any, clean: bool = False) -> dict:
     result = OrderedDict()
 
     for key, value in schema.items():
-        if (key.startswith("_")):
+        if key.startswith("_"):
             continue
 
         getter_key = pascal_case(key)
@@ -412,19 +418,19 @@ def deserialize_flatbuffer(buffer: Any, schema: dict, clean: bool = False) -> di
         default_value = None
         value_data = None
 
-        if (isinstance(value_type, tuple)):
+        if isinstance(value_type, tuple):
             value_type, default_value = value
 
         # Numbers & Booleans | Simple Types
-        if value_type == int or value_type == bool or value_type == float:
+        if value_type is int or value_type is bool or value_type is float:
             value_data = getattr(buffer, getter_key)()
 
         # Strings
-        elif value_type == str:
+        elif value_type is str:
             value_data = deserialize_string(getattr(buffer, getter_key)())
 
         # FlexBuffers
-        elif value_type == bytes:
+        elif value_type is bytes:
             value_data = deserialize_flexbuffer(
                 getattr(buffer, f"{getter_key}AsNumpy")()
             )
@@ -436,7 +442,7 @@ def deserialize_flatbuffer(buffer: Any, schema: dict, clean: bool = False) -> di
         # Structs
         elif isinstance(value_type, dict):
             struct_buffer = getattr(buffer, getter_key)()
-            if struct_buffer == None:
+            if struct_buffer is None:
                 continue
 
             value_data = deserialize_flatbuffer(struct_buffer, schema[key])
@@ -444,14 +450,14 @@ def deserialize_flatbuffer(buffer: Any, schema: dict, clean: bool = False) -> di
         # String-Enum
         elif issubclass(value_type, IntEnum):
             enum_value = getattr(buffer, getter_key)()
-            if (enum_value == default_value):
+            if enum_value == default_value:
                 continue
             value_data = value_type(enum_value).name
 
-        if (clean and value_data is None):
+        if clean and value_data is None:
             continue
 
-        if (default_value != value_data):
+        if default_value != value_data:
             result[key] = value_data if value_data is not None else default_value
 
     return result
@@ -475,9 +481,9 @@ def deserialize_glb_json(data: bytes, clean: bool = False) -> dict:
     # should patch this if any
     for mesh in output.get("meshes", []):
         for primitive in mesh.get("primitives", []):
-            if ("targets" not in primitive):
+            if "targets" not in primitive:
                 continue
-            
+
             targets = primitive.pop("targets")
             extras = primitive["extras"] = primitive.get("extras", {})
             extras["scTargets"] = targets
@@ -519,28 +525,28 @@ def serialize_gather(builder: Builder, class_name: str, gather: dict) -> Any:
 def serialize_array(
     builder: Builder, data: list, schema: Any, class_name: str, key: str
 ) -> int or list:
-    if schema == int:
+    if schema is int:
         array = np.array(data, dtype=np.int32)
         return builder.CreateNumpyVector(array)
 
-    elif schema == float:
+    elif schema is float:
         array = np.array(data, dtype=np.float32)
         return builder.CreateNumpyVector(array)
 
-    elif isinstance(schema, dict) or schema == str:
+    elif isinstance(schema, dict) or schema is str:
         objects = []
 
         for object in data:
-            if (object is None):
+            if object is None:
                 continue
 
-            if (schema == str):
+            if schema is str:
                 objects.append(builder.CreateString(object))
             else:
                 objects.append(serialize_flatbuffer(builder, object, schema))
 
         object_count = len(objects)
-        if (object_count == 0):
+        if object_count == 0:
             return 0
         vector_start = getattr(flat, f"{class_name}Start{key}Vector")
         vector_start(builder, object_count)
@@ -551,11 +557,11 @@ def serialize_array(
         return builder.EndVector()
 
 
-def serialize_flatbuffer(builder: Builder, data: dict, schema: dict) -> Any:
+def serialize_flatbuffer(builder: Builder, data: dict, schema: Any) -> Any:
     gather = {}
 
     class_type = schema.get("_type")
-    if (class_type is None):
+    if class_type is None:
         raise Exception("Schema must have a _type field")
     class_name = class_type.__name__
     for key, value in schema.items():
@@ -564,29 +570,28 @@ def serialize_flatbuffer(builder: Builder, data: dict, schema: dict) -> Any:
 
         key_getter = pascal_case(key)
         key_data = data.get(key)
-        if key_data == None:
+        if key_data is None:
             continue
 
         value_type = value
         default_value = None
-        if (isinstance(value, tuple)):
+        if isinstance(value, tuple):
             value_type, default_value = value
 
-        if (key_data == default_value):
+        if key_data == default_value:
             continue
 
         # Simple Types
-        if value_type == int or value_type == float or value_type == bool:
+        if value_type is int or value_type is float or value_type is bool:
             gather[key_getter] = key_data
 
         # Strings
-        if value_type == str:
+        if value_type is str:
             gather[key_getter] = builder.CreateString(key_data)
 
         # FlexBuffers
-        elif value_type == bytes:
-            gather[key_getter] = builder.CreateByteVector(
-                flexbuffers.Dumps(key_data))
+        elif value_type is bytes:
+            gather[key_getter] = builder.CreateByteVector(flexbuffers.Dumps(key_data))
 
         # Array Of Objects
         elif isinstance(value_type, list):
@@ -596,13 +601,12 @@ def serialize_flatbuffer(builder: Builder, data: dict, schema: dict) -> Any:
 
         # Structs
         elif isinstance(value_type, dict):
-            gather[key_getter] = serialize_flatbuffer(
-                builder, key_data, schema[key])
+            gather[key_getter] = serialize_flatbuffer(builder, key_data, schema[key])
 
         # String-Enum
         elif issubclass(value_type, IntEnum):
             enum_data = getattr(value_type, key_data)
-            if (enum_data == default_value):
+            if enum_data == default_value:
                 continue
             gather[key_getter] = enum_data.value
 

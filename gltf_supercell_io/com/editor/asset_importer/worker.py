@@ -2,7 +2,6 @@ import bpy
 from dataclasses import dataclass
 from queue import Queue, Empty
 from threading import Thread
-from dataclasses import dataclass
 from typing import Any, cast, TYPE_CHECKING
 from ...net.asset_request import AssetRequest, list_assets
 from .helpers import clean_asset_browser_cache

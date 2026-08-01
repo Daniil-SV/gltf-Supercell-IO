@@ -1,7 +1,6 @@
 import bpy
 from typing import cast, Any
 
-from .com.editor.string_array import *
 from .exporter.ui import glTFSupercellExporterProperties
 from .importer.ui import glTFSupercellImporterProperties, glTFSupercellTextureOverride
 from .com.shader.handler import shader_linkage_handler

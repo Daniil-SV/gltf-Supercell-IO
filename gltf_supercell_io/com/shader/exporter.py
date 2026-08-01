@@ -4,7 +4,7 @@ from bpy.types import Material, Image, NodeSocketFloatFactor
 from ..materials import ScShaderMaterial, ScBlendMode
 from .nodes import ShaderNodeScShader
 from ..shader_presets import ShaderPresets
-from ..utilities import is_typed_array
+from ..utilities import typing
 from ..materials.variables import (
     ShaderFloatVectorProperty,
     ShaderFloatProperty,
@@ -19,7 +19,7 @@ from io_scene_gltf2.blender.exp.material.image import __make_image as make_image
 from io_scene_gltf2.io.com import gltf2_io
 from io_scene_gltf2.blender.exp.cache import cached
 from io_scene_gltf2.io.com.constants import TextureFilter, TextureWrap
-from ..utilities import ShaderUtils
+from ..utilities.shader import ShaderUtils
 from typing import Any
 
 
@@ -237,7 +237,7 @@ class ShaderExporter:
         prop_type = None
         if isinstance(value, bool):
             prop_type = ShaderBooleanProperty
-        elif is_typed_array(value, float):
+        elif typing.is_typed_array(value, float):
             prop_type = ShaderFloatVectorProperty
         elif isinstance(value, float):
             prop_type = ShaderFloatProperty
@@ -282,7 +282,7 @@ class ShaderExporter:
         for key in prop_keys:
             # Handle constants which didn't make it into the shader
             if key == "$constants":
-                if is_typed_array(self.shader[key], str):
+                if typing.is_typed_array(self.shader[key], str):
                     for constant in self.shader[key]:
                         self.sc_material.add_constant(constant)
                 continue

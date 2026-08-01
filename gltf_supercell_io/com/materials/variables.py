@@ -1,7 +1,7 @@
 from typing import List, Dict
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 from io_scene_gltf2.io.com.gltf2_io import Image, Texture
-from ..utilities import is_typed_array
+from ..utilities import typing
 from collections import OrderedDict
 from typing import Any, Optional
 
@@ -34,7 +34,7 @@ class ShaderFloatVectorProperty(ShaderProperty):
     """Shader float vector property"""
 
     def __init__(self, vector: List[float] = []):
-        if not is_typed_array(vector, (float, int)):
+        if not typing.is_typed_array(vector, (float, int)):
             raise TypeError("Incorrect float array property value type")
 
         self.vector = [float(num) for num in vector]
