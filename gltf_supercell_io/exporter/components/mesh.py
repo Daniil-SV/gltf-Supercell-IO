@@ -3,7 +3,7 @@ from .component import glTF2BaseExporterComponent
 import numpy as np
 from typing import TYPE_CHECKING
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
-from io_scene_gltf2.blender.exp.accessors import array_to_accessor
+from ...com.utilities.compatibility import array_to_accessor
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.com.gltf2_io import Accessor, Mesh, MeshPrimitive
@@ -41,6 +41,7 @@ class MeshExporter(glTF2BaseExporterComponent):
                 ).reshape(accessor.count, 4)
 
                 primitive.attributes[name] = array_to_accessor(
+                    name,
                     array.astype(target_dtype),
                     export_settings,
                     target_type,
