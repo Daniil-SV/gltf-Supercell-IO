@@ -9,4 +9,4 @@ OUTPUT_NAME = os.path.join(OUTPUT_FOLDER, "gltf_image_converter.zip")
 
 if __name__ == "__main__":
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    zip_folder(INPUT_FOLDER, OUTPUT_NAME, ["library/*"])
+    zip_folder(INPUT_FOLDER, OUTPUT_NAME)
