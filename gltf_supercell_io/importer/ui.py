@@ -52,6 +52,7 @@ class glTFSupercellImporterProperties(PropertyGroup):
         name="Material preset",
         description="Select shader preset for imported material",
         items=[
+            ("None", "None", "Do not import Supercell materials in any way"),
             (str(ShaderPresetType.UNLIT), "Unlit", "Use unlit materials"),
             (
                 str(ShaderPresetType.BRAWL_STARS_LEGACY),

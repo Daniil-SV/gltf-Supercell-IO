@@ -103,6 +103,9 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
         if material is None:
             return
 
+        if self.properties.shader_preset == "None":
+            return
+
         # Cleanup material from glTF fallback and prepare for our own processing
         gltf_material.pbr_metallic_roughness.blender_nodetree = None
         gltf_material.pbr_metallic_roughness.blender_mat = None
