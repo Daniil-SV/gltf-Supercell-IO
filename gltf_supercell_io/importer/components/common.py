@@ -157,34 +157,31 @@ class CommonImporter(glTF2BaseImporterComponent):
                 visit_skin(idx)
 
         # Check each node until we found mesh or bone
-        def visit(idx: int) -> tuple[bool, bool]:
+        def visit(idx: int) -> bool:
             node: "Node" = gltf.data.nodes[idx]
 
             if idx in skin_joints:
-                return (False, True)
+                return True
 
-            if node.mesh is not None:
-                return (True, False)
+            for children in reversed(node.children or []):
+                result = visit(children)
 
-            for children in node.children or []:
-                has_mesh, has_joint = visit(children)
+                if result:
+                    return True
 
-                if has_mesh or has_joint:
-                    return (has_mesh, has_joint)
-
-            return (False, False)
+            return False
 
         seen_skin = False
         requires_reoder = False
         for idx in range(len(gltf.data.nodes or [])):
-            has_mesh, has_skin = visit(idx)
+            has_any_joint = visit(idx)
 
             # In normal cases skin should come first
-            if has_mesh and not seen_skin:
+            if not has_any_joint and not seen_skin:
                 requires_reoder = True
                 break
 
-            if has_skin:
+            if has_any_joint:
                 seen_skin = True
 
         return requires_reoder
@@ -246,7 +243,7 @@ class CommonImporter(glTF2BaseImporterComponent):
             if skin.joints is None:
                 continue
 
-            skin.joins = [mapping[idx] for idx in skin.joints]
+            skin.joints = [mapping[idx] for idx in skin.joints]
 
         # Animations
         for animation in gltf.data.animations or []:
