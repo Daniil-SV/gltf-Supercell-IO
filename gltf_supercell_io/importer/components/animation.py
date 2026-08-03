@@ -20,6 +20,7 @@ from io_scene_gltf2.blender.imp.animation_utils import (
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+    from io_scene_gltf2.io.com.gltf2_io import Node
 
 
 class OdinAnimationImporter(glTF2BaseImporterComponent):
@@ -200,6 +201,50 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
                     list(scale[c][f] for c in range(ScaleChannels))
                     for f in range(duration)
                 ]
+
                 self.do_animation_channel(
                     animation, duration, fps, "scale", scale, anim_idx, node_idx, gltf
                 )
+
+        # Create keyframes for pose
+        for node_idx in range(len(gltf.data.nodes)):
+            if node_idx in animation.used_nodes:
+                continue
+
+            vnode: VNode = gltf.vnodes[node_idx]  # type: ignore
+            if vnode.type != VNode.Bone:
+                continue
+
+            node: "Node" = gltf.data.nodes[node_idx]
+
+            # Translation
+            translation = [node.translation or [0, 0, 0]]
+            self.do_animation_channel(
+                animation,
+                1,
+                fps,
+                "translation",
+                translation,
+                anim_idx,
+                node_idx,
+                gltf,
+            )
+
+            # Rotation
+            rotation = [node.rotation or [0, 0, 0, 1]]
+            self.do_animation_channel(
+                animation,
+                1,
+                fps,
+                "rotation",
+                rotation,
+                anim_idx,
+                node_idx,
+                gltf,
+            )
+
+            # Scale
+            scale = [node.scale or [1, 1, 1]]
+            self.do_animation_channel(
+                animation, 1, fps, "scale", scale, anim_idx, node_idx, gltf
+            )
