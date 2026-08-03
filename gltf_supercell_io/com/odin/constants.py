@@ -54,7 +54,7 @@ class OdinAttributeType(IntEnum):
 class OdinAttributeFormat(IntEnum):
     UByteVector4 = 3
     ColorRGBA = 9
-    UByteVector3 = 12
+    ByteVector3 = 12
     ShortVector2 = 22
     FloatVector2 = 29
     FloatVector3 = 30
@@ -64,7 +64,7 @@ class OdinAttributeFormat(IntEnum):
     def to_numpy_dtype(cls, component_type):
         return {
             OdinAttributeFormat.FloatVector3: np.float32,
-            OdinAttributeFormat.UByteVector3: np.byte,
+            OdinAttributeFormat.ByteVector3: np.byte,
             OdinAttributeFormat.UByteVector4: np.ubyte,
             OdinAttributeFormat.NormalizedWeightVector: np.float32,
             OdinAttributeFormat.FloatVector2: np.float32,
@@ -76,7 +76,7 @@ class OdinAttributeFormat(IntEnum):
     def to_element_count(cls, component_type) -> int:
         return {
             OdinAttributeFormat.FloatVector3: 3,
-            OdinAttributeFormat.UByteVector3: 3,
+            OdinAttributeFormat.ByteVector3: 3,
             OdinAttributeFormat.UByteVector4: 4,
             OdinAttributeFormat.NormalizedWeightVector: 4,
             OdinAttributeFormat.FloatVector2: 2,
