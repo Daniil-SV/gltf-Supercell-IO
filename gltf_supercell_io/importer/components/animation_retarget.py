@@ -61,7 +61,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
         for bone in target.data.bones:
             if bone.parent:
                 rest[bone.name] = (
-                    bone.parent.matrix_local.inverted() @ bone.matrix_local
+                    bone.parent.matrix_local.inverted_safe() @ bone.matrix_local
                 )
             else:
                 rest[bone.name] = bone.matrix_local
@@ -144,7 +144,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
         bones = self.sort_bones(target)
 
         # World-armature conversion (armature-local space) from source to target
-        sw_to_tw = target.matrix_world.inverted() @ source.matrix_world
+        sw_to_tw = target.matrix_world.inverted_safe() @ source.matrix_world
 
         # Validate that every target bone (and its parent) exists in source by name
         src_pose = source.pose
@@ -246,7 +246,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
                 if bone in paired_set:
                     desired = sw_to_tw @ src_mats[bone]
                     basis = (
-                        rest_offset[bone].inverted() @ parent_pose.inverted() @ desired
+                        rest_offset[bone].inverted_safe() @ parent_pose.inverted_safe() @ desired
                     )
                     pose = desired
                 else:
