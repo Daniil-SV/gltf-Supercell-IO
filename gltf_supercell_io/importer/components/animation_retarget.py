@@ -101,7 +101,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
 
         for obj in objects:
             data = obj.data
-            animation_data = obj.animation_data
+            action = obj.animation_data.action if obj.animation_data else None
 
             bpy.data.objects.remove(obj, do_unlink=True)
             if data and data.users == 0:
@@ -117,10 +117,8 @@ class AnimationImporter(glTF2BaseImporterComponent):
                     case bpy.types.Light:
                         bpy.data.lights.remove(data)
 
-            if animation_data and animation_data.action:
-                action = animation_data.action
-                if action.users == 0:
-                    bpy.data.actions.remove(action)
+            if action and action.users == 0:
+                bpy.data.actions.remove(action)
 
     def retarget_animation(
         self, source: bpy.types.Object, target: bpy.types.Object, fallback_name: str
@@ -190,16 +188,6 @@ class AnimationImporter(glTF2BaseImporterComponent):
             for n in bones
         }
 
-        # Note: scScaleOverride custom property on target bones is intentionally
-        # NOT applied to matrix_basis here. The SC importer's
-        # move_pose_bone_offset() saves the bone's original pose-bone scale
-        # into scScaleOverride and resets pose bone to (1,1,1) so the viewport
-        # keeps a uniform-size skeleton. The SC exporter (see
-        # exporter/components/common.py) re-applies scScaleOverride to
-        # matrix_world on export. Baking it into matrix_basis at retarget time
-        # would double-count the scale -- visually shrinking the bone and
-        # throwing off translations
-
         # Build the explicit list of frames we will iterate, and size everything
         # to THAT list rather than to a separately-computed num_frames (which
         # can drift in edge cases around int() / float boundary rounding).
@@ -258,6 +246,10 @@ class AnimationImporter(glTF2BaseImporterComponent):
                 if bone in paired_set:
                     loc, quat, scale = basis.decompose()
 
+                    sx, sy, sz = 1, 1, 1
+                    if "scScaleOverride" in tgt_pose.bones[bone]:
+                        sx, sy, sz = tgt_pose.bones[bone]["scScaleOverride"]
+                    
                     loc_vals[bone][0][fi] = loc.x
                     loc_vals[bone][1][fi] = loc.y
                     loc_vals[bone][2][fi] = loc.z
@@ -268,9 +260,9 @@ class AnimationImporter(glTF2BaseImporterComponent):
                     rot_vals[bone][1][fi] = quat.x
                     rot_vals[bone][2][fi] = quat.y
                     rot_vals[bone][3][fi] = quat.z
-                    scl_vals[bone][0][fi] = scale.x
-                    scl_vals[bone][1][fi] = scale.y
-                    scl_vals[bone][2][fi] = scale.z
+                    scl_vals[bone][0][fi] = scale.x * sx
+                    scl_vals[bone][1][fi] = scale.y * sy
+                    scl_vals[bone][2][fi] = scale.z * sz
 
         # Ensure quaternion rotations take the shortest arc by flipping adjacent
         # antipodal quaternions -- the same nla.bake / io_scene_gltf2 pass that
