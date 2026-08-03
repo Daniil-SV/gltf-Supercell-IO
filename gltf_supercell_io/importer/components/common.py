@@ -143,6 +143,10 @@ class CommonImporter(glTF2BaseImporterComponent):
         if len(gltf.data.skins) == 0:
             return False
 
+        # Should not happen for animation files? :hope:
+        if len(gltf.data.animations) != 0:
+            return False
+        
         # Gather skin joints
         skin_joints: set[int] = set()
 
@@ -184,6 +188,20 @@ class CommonImporter(glTF2BaseImporterComponent):
             if has_any_joint:
                 seen_skin = True
 
+        if requires_reoder:
+            for idx in range(len(gltf.data.nodes or [])):
+                node = gltf.data.nodes[idx]
+                if node.children is None:
+                    continue
+
+                node.children.sort(key=lambda children: visit(children), reverse=True)
+
+            for scene in gltf.data.scenes:
+                if scene.nodes is None:
+                    continue
+
+                scene.nodes.sort(key=lambda children: visit(children), reverse=True)
+
         return requires_reoder
 
     def reorder_nodes(self, gltf: "glTFImporter"):
@@ -216,10 +234,26 @@ class CommonImporter(glTF2BaseImporterComponent):
                 visit(i)
 
         # Sorting by mesh relation
-        nodes = list(enumerate(gltf.data.nodes or []))
-        nodes.sort(key=lambda item: item[0] in mesh_nodes)
-        gltf.data.nodes = [node for _, node in nodes]
+        nodes: list = []
+        added_nodes: set[int] = set()
 
+        def add_node(idx: int):
+            if idx in added_nodes:
+                return
+
+            node = gltf.data.nodes[idx]
+            nodes.append((idx, node))
+
+            for children in node.children or []:
+                add_node(children)
+
+            added_nodes.add(idx)
+
+        for scene in gltf.data.scenes or []:
+            for node in scene.nodes or []:
+                add_node(node)
+
+        gltf.data.nodes = [node for _, node in nodes]
         mapping = {old_idx: new_idx for new_idx, (old_idx, _) in enumerate(nodes)}
 
         # Updating indices for other properties
@@ -390,7 +424,7 @@ class CommonImporter(glTF2BaseImporterComponent):
 
         self.process_nodes(gltf)
         self.restore_fields(gltf)
-        
+
         if len(gltf.data.nodes) != 0:
             self.fix_node_tree(gltf)
 
