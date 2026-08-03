@@ -251,14 +251,9 @@ class CommonImporter(glTF2BaseImporterComponent):
                 if channel.target.node is not None:
                     channel.target.node = mapping[channel.target.node]
 
-    def do_final_fixups(self, gltf: "glTFImporter"):
-        """
-        Very often Supercell glTF files have missing fields that are required by the importer,
-        this function adds them back
-        """
-
+    def fix_node_tree(self, gltf: "glTFImporter"):
         root_nodes = []
-        nodes: List["Node"] = gltf.data.nodes or []
+        nodes: List["Node"] = gltf.data.nodes
         skins = gltf.data.skins = gltf.data.skins or []
 
         # Fix for scene and root nodes definition
@@ -309,7 +304,7 @@ class CommonImporter(glTF2BaseImporterComponent):
             if len(skins) == 0:
                 joints = [
                     i
-                    for i, node in enumerate(gltf.data.nodes)
+                    for i, node in enumerate(gltf.data.nodes or [])
                     if node.mesh is None  # node is mesh reference
                     and node.camera is None  # node is camera references
                     and node.skin is None  # node has explicit skin index
@@ -344,6 +339,12 @@ class CommonImporter(glTF2BaseImporterComponent):
                             skin.skeleton = key
                             break
 
+    def restore_fields(self, gltf: "glTFImporter"):
+        """
+        Very often Supercell glTF files have missing fields that are required by the importer,
+        this function adds them back
+        """
+        gltf.data.nodes = gltf.data.nodes or []
         gltf.data.meshes = gltf.data.meshes or []
 
     def setup_settings(self, gltf: "glTFImporter"):
@@ -388,7 +389,10 @@ class CommonImporter(glTF2BaseImporterComponent):
         self.move_animation(gltf)
 
         self.process_nodes(gltf)
-        self.do_final_fixups(gltf)
+        self.restore_fields(gltf)
+        
+        if len(gltf.data.nodes) != 0:
+            self.fix_node_tree(gltf)
 
         if self.properties.better_settings:
             self.setup_settings(gltf)
