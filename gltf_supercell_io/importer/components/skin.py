@@ -1,12 +1,8 @@
 import bpy
-from mathutils import Vector
+from mathutils import Vector, Matrix
 from typing import TYPE_CHECKING, Any
 from .component import glTF2BaseImporterComponent, requires_extension
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
-from io_scene_gltf2.io.com.constants import ComponentType, DataType
-
-from io_scene_gltf2.io.exp.binary_data import BinaryData as ExportBinaryData
-from ...com.utilities.compatibility import gather_accessor
 from io_scene_gltf2.blender.imp.vnode import VNode
 
 if TYPE_CHECKING:
@@ -172,21 +168,10 @@ class SkinImporter(glTF2BaseImporterComponent):
             if skin.inverse_bind_matrices is None:
                 continue
 
-            binary_data = ExportBinaryData.from_list(
-                [value for matrix in inv_binds for value in matrix], ComponentType.Float
-            )
-            new_accessor = gather_accessor(
-                binary_data,
-                ComponentType.Float,
-                len(inv_binds) // DataType.num_elements(DataType.Mat4),
-                None,
-                None,
-                DataType.Mat4,  # type: ignore
-                {},
-            )
-
-            skin.inverse_bind_matrices = len(gltf.data.accessors)
-            gltf.data.accessors.append(new_accessor)
+            accessor_idx = len(gltf.data.accessors)
+            gltf.accessor_cache[accessor_idx] = inv_binds
+            gltf.data.accessors.append(None)
+            skin.inverse_bind_matrices = accessor_idx
 
     def filter_deform_bones(self, gltf: "glTFImporter"):
         vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
