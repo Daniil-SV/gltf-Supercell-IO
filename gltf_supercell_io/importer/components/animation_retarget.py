@@ -91,14 +91,15 @@ class AnimationImporter(glTF2BaseImporterComponent):
         objects = []
 
         def collect(obj):
-            objects.append(obj)
-            for child in obj.children:
-                collect(child)
+            try:
+                for child in obj.children:
+                    collect(child)
+
+                objects.append(obj)
+            except ReferenceError:
+                pass
 
         collect(root)
-
-        objects.reverse()
-
         for obj in objects:
             data = obj.data
             action = obj.animation_data.action if obj.animation_data else None
