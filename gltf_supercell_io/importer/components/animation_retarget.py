@@ -371,7 +371,13 @@ class AnimationImporter(glTF2BaseImporterComponent):
 
         if success:
             gltf.import_settings["import_select_created_objects"] = False
+
             for idx in gltf_scene.nodes or []:
                 vnode = vnodes.get(idx)
-                self.orphan_object(vnode.blender_object)  # type: ignore
-                
+                if vnode is None:
+                    continue
+
+                if hasattr(vnode, "blender_object"):
+                    self.orphan_object(vnode.blender_object)  # type: ignore
+                elif vnode.parent is not None:
+                    self.orphan_object(vnodes[vnode.parent].blender_object)  # type: ignore
