@@ -205,8 +205,13 @@ class SkinImporter(glTF2BaseImporterComponent):
 
     def move_pose_bone_offset(self, bone: bpy.types.PoseBone):
         default_scale = Vector((1.0, 1.0, 1.0))
-        if bone.scale != default_scale:
-            bone["scScaleOverride"] = bone.scale
+        if bone.scale != default_scale and bone.bone.use_deform:
+            x, y, z = bone.scale
+            bone["scScaleOverride"] = (
+                x if x != 0.0 else 1.0,
+                y if y != 0.0 else 1.0,
+                z if z != 0.0 else 1.0,
+            )
             bone.scale = default_scale
 
     def create_pose_bones_properties(self, gltf: "glTFImporter"):
