@@ -23,7 +23,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
             return
 
         for selected in layer.objects.selected:
-            if isinstance(selected, bpy.types.Object):
+            if isinstance(selected, bpy.types.Object) and selected.type == "ARMATURE":
                 return selected
 
         return None
@@ -234,7 +234,9 @@ class AnimationImporter(glTF2BaseImporterComponent):
                 if bone in paired_set:
                     desired = sw_to_tw @ src_mats[bone]
                     basis = (
-                        rest_offset[bone].inverted_safe() @ parent_pose.inverted_safe() @ desired
+                        rest_offset[bone].inverted_safe()
+                        @ parent_pose.inverted_safe()
+                        @ desired
                     )
                     pose = desired
                 else:
@@ -249,7 +251,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
                     sx, sy, sz = 1, 1, 1
                     if "scScaleOverride" in tgt_pose.bones[bone]:
                         sx, sy, sz = tgt_pose.bones[bone]["scScaleOverride"]
-                    
+
                     loc_vals[bone][0][fi] = loc.x
                     loc_vals[bone][1][fi] = loc.y
                     loc_vals[bone][2][fi] = loc.z
@@ -333,7 +335,6 @@ class AnimationImporter(glTF2BaseImporterComponent):
         # Cleanup
         if source_animation is not None and source_animation.action_slot is not None:
             action.slots.remove(source_animation.action_slot)
-        self.orphan_object(source)
 
         scene.frame_start = start
         scene.frame_end = end
@@ -366,5 +367,11 @@ class AnimationImporter(glTF2BaseImporterComponent):
         retarget_armatures.add(gltf_armature.name_full)
 
         success = self.retarget_animation(gltf_armature, self.armature, name)
+        vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
+
         if success:
             gltf.import_settings["import_select_created_objects"] = False
+            for idx in gltf_scene.nodes or []:
+                vnode = vnodes.get(idx)
+                self.orphan_object(vnode.blender_object)  # type: ignore
+                

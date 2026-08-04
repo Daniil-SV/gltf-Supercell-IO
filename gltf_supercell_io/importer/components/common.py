@@ -144,9 +144,9 @@ class CommonImporter(glTF2BaseImporterComponent):
             return False
 
         # Should not happen for animation files? :hope:
-        if len(gltf.data.animations) != 0:
+        if len(gltf.data.animations or []) != 0:
             return False
-        
+
         # Gather skin joints
         skin_joints: set[int] = set()
 
@@ -188,6 +188,7 @@ class CommonImporter(glTF2BaseImporterComponent):
             if has_any_joint:
                 seen_skin = True
 
+        # Sort children's aright after gathering data
         if requires_reoder:
             for idx in range(len(gltf.data.nodes or [])):
                 node = gltf.data.nodes[idx]
@@ -219,21 +220,6 @@ class CommonImporter(glTF2BaseImporterComponent):
         if not self.requires_nodes_reorder(gltf):
             return
 
-        # Gathering all mesh related nodes in ascending order
-        mesh_nodes: set[int] = set()
-
-        def visit(idx: int):
-            mesh_nodes.add(idx)
-
-            for i, node in enumerate(gltf.data.nodes or []):
-                if idx in (node.children or []):
-                    visit(i)
-
-        for i, node in enumerate(gltf.data.nodes or []):
-            if node.mesh is not None:
-                visit(i)
-
-        # Sorting by mesh relation
         nodes: list = []
         added_nodes: set[int] = set()
 
