@@ -16,7 +16,11 @@ from .importer.ui import draw_import
 from .importer import glTF2ImportUserExtension
 from .importer.patches import flatbuffer_glb, skinned_mesh
 from .com.utilities.patcher import register_patch, unregister_patch
-from .exporter.patches import inverse_bind_matrices_gather, traverse_gather
+from .exporter.patches import (
+    inverse_bind_matrices_gather,
+    traverse_gather,
+    inline_materials,
+)
 from .com.editor.string_array import (
     StringItem,
     DirectoryStringItem,
@@ -70,14 +74,20 @@ classes = [
 ]
 
 patches = [flatbuffer_glb, skinned_mesh, inverse_bind_matrices_gather, traverse_gather]
+patches_5_2_up = [inline_materials]
 
 
 def register():
+    major, minor, build = bpy.app.version
     for cls in classes:
         bpy.utils.register_class(cls)
 
     for patch in patches:
         register_patch(patch)
+
+    if major >= 5 and minor >= 2:
+        for patch in patches_5_2_up:
+            register_patch(patch)
 
     scene = cast(Any, bpy.types.Scene)
     window = cast(Any, bpy.types.WindowManager)
