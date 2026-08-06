@@ -263,9 +263,9 @@ class AnimationImporter(glTF2BaseImporterComponent):
                     rot_vals[bone][1][fi] = quat.x
                     rot_vals[bone][2][fi] = quat.y
                     rot_vals[bone][3][fi] = quat.z
-                    scl_vals[bone][0][fi] = scale.x * sx
-                    scl_vals[bone][1][fi] = scale.y * sy
-                    scl_vals[bone][2][fi] = scale.z * sz
+                    scl_vals[bone][0][fi] = scale.x * (1 / sx)
+                    scl_vals[bone][1][fi] = scale.y * (1 / sy)
+                    scl_vals[bone][2][fi] = scale.z * (1 / sz)
 
         # Ensure quaternion rotations take the shortest arc by flipping adjacent
         # antipodal quaternions -- the same nla.bake / io_scene_gltf2 pass that

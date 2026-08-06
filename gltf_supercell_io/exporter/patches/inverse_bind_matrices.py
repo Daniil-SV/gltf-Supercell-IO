@@ -32,9 +32,12 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
 
     def __collect_matrices(bone: bpy.types.PoseBone):
         scale = Vector((1.0, 1.0, 1.0))
-        scaleOverride: list[float] = bone.get("scScaleOverride")
-        if scaleOverride is not None:
-            scale = Vector(scaleOverride)
+
+        props = bpy.context.scene.glTFSupercellExporterProperties  # type: ignore
+        if props.enabled:
+            scaleOverride: list[float] = bone.get("scScaleOverride")
+            if scaleOverride is not None:
+                scale = Vector(scaleOverride)
 
         inverse_bind_matrix = (
             axis_basis_change
