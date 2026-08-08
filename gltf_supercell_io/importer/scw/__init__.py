@@ -13,9 +13,17 @@ from .chunks.instance.controller_instance import (
 )
 from .chunks.sub.attribute import ScwAttribute
 from .chunks.sub.primitive import ScwPrimitive
+from .chunks.sub.joint import ScwJoint
 from os.path import isfile
 from typing import Optional, cast
-from io_scene_gltf2.io.com.gltf2_io import Gltf, Node, Mesh, MeshPrimitive, Material
+from io_scene_gltf2.io.com.gltf2_io import (
+    Gltf,
+    Node,
+    Mesh,
+    MeshPrimitive,
+    Material,
+    Skin,
+)
 from ...com import glTF_material_extension_name
 from copy import copy
 from dataclasses import dataclass
@@ -48,6 +56,7 @@ class ScwFile:
         self.gltf = glTFImporter(filename, settings)
         self.imported_meshes: dict[str, Mesh] = {}
         self.imported_materials: list[str] = []
+        self.imported_skins: dict[str, tuple[ScwJoint, ...]] = {}
         self.mesh_instances: dict[CachedMeshInstance, int] = {}
         self.version = -1
 
@@ -140,6 +149,16 @@ class ScwFile:
                 )
             )
 
+        if len(mesh.joints) > 0:
+            joints = mesh.joints
+            if mesh.bind_matrix is not None:
+                for joint in joints:
+                    joint.inverse_bind_matrix = (
+                        mesh.bind_matrix @ joint.inverse_bind_matrix
+                    )
+
+            self.imported_skins[mesh.name] = joints
+
         self.imported_meshes[mesh.name] = Mesh(
             extensions=None,
             extras=None,
@@ -183,13 +202,43 @@ class ScwFile:
     def _instantiate_mesh_instance(self, instance: ScwGeometryInstance) -> int:
         return self._instantiate_mesh(instance.target_mesh, instance.material_binding)
 
+    def _create_skin(self, name: str, nodes: ScwNodes) -> int:
+        joints_idx: list[int] = []
+        inv_matrices: int | None = None
+
+        if name in self.imported_skins:
+            keys = [node.name for node in nodes.nodes]
+            joints = self.imported_skins[name]
+
+            joints_idx = [keys.index(joint.name) for joint in joints]
+            joints_matrices = [joint.inverse_bind_matrix for joint in joints]
+            inv_matrices = self._create_accessor(
+                np.asarray(
+                    [matrix[:] for matrix in joints_matrices], dtype=np.float32
+                ).reshape(-1, 16)
+            )
+
+        skin_idx = len(self.gltf.data.skins)
+        gltf_skin = Skin(
+            name=None,
+            extensions=None,
+            extras=None,
+            inverse_bind_matrices=inv_matrices,
+            joints=joints_idx,
+            skeleton=None,
+        )
+        self.gltf.data.skins.append(gltf_skin)
+        return skin_idx
+
     def _instantiate_skinned_mesh_instance(
-        self, instance: ScwControllerInstance
+        self, instance: ScwControllerInstance, nodes: ScwNodes
     ) -> tuple[int, int]:
         mesh_idx = self._instantiate_mesh(
             instance.target_mesh, instance.material_binding
         )
-        return (mesh_idx, None)
+
+        skin_idx = self._create_skin(instance.target_mesh, nodes)
+        return (mesh_idx, skin_idx)
 
     def _import_nodes(self, nodes: ScwNodes):
         gltf_nodes = [
@@ -236,13 +285,13 @@ class ScwFile:
 
             # Processing instances
             for instance in node.instances:
-                # Geometry
-                if isinstance(instance, ScwGeometryInstance):
-                    gltf_node.mesh = self._instantiate_mesh_instance(instance)  # type: ignore
-
                 # Skinned geometry
-                elif isinstance(instance, ScwControllerInstance):
-                    gltf_node.mesh, gltf_node.skin = self._instantiate_skinned_mesh_instance(instance)  # type: ignore
+                if isinstance(instance, ScwControllerInstance):
+                    gltf_node.mesh, gltf_node.skin = self._instantiate_skinned_mesh_instance(instance, nodes)  # type: ignore
+
+                # Geometry
+                elif isinstance(instance, ScwGeometryInstance):
+                    gltf_node.mesh = self._instantiate_mesh_instance(instance)  # type: ignore
 
             # TODO: Animation
             if len(node.frames) > 1:
