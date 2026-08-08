@@ -1,5 +1,5 @@
 import bpy
-from mathutils import Vector, Matrix
+from mathutils import Vector
 from typing import TYPE_CHECKING, Any
 from .component import glTF2BaseImporterComponent, requires_extension
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData

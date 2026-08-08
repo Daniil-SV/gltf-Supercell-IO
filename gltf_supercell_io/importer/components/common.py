@@ -277,7 +277,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         skins = gltf.data.skins = gltf.data.skins or []
 
         # Fix for scene and root nodes definition
-        if gltf.data.scenes is None:
+        if gltf.data.scenes is None or len(gltf.data.scenes) == 0:
             childrens = set()
             for node in nodes:
                 if node.children is None:

@@ -43,6 +43,7 @@ from .com.editor.asset_importer import (
     start_asset_worker,
     stop_asset_worker,
 )
+from .importer.scw.operator import ImportSCW, scw_func_import, IO_FH_scw
 from .preferences import SupercellGLTFPreferences
 
 classes = [
@@ -71,6 +72,8 @@ classes = [
     ASSETS_UL_list,
     AssetBrowserItem,
     AssetBrowserProperties,
+    ImportSCW,
+    IO_FH_scw,
 ]
 
 patches = [flatbuffer_glb, skinned_mesh, inverse_bind_matrices_gather, traverse_gather]
@@ -112,6 +115,8 @@ def register():
         persistent=True,
     )
 
+    bpy.types.TOPBAR_MT_file_import.append(scw_func_import)
+
     # Use the following 2 lines to register the UI for this hook
     from io_scene_gltf2 import exporter_extension_layout_draw
 
@@ -143,3 +148,5 @@ def unregister():
     bpy.app.handlers.load_post.remove(shader_linkage_handler)
     bpy.app.handlers.load_post.remove(refresh_handler)
     bpy.app.timers.unregister(asset_browser_timer)
+
+    bpy.types.TOPBAR_MT_file_import.remove(scw_func_import)
