@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any
 from .component import glTF2BaseImporterComponent, requires_extension
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 from io_scene_gltf2.blender.imp.vnode import VNode
+from ...com.utilities.accessor import MemoryAccessor
+import numpy as np
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
@@ -169,8 +171,9 @@ class SkinImporter(glTF2BaseImporterComponent):
                 continue
 
             accessor_idx = len(gltf.data.accessors)
-            gltf.accessor_cache[accessor_idx] = inv_binds
-            gltf.data.accessors.append(None)
+            gltf.data.accessors.append(
+                MemoryAccessor(np.array(inv_binds, dtype=np.float32))
+            )
             skin.inverse_bind_matrices = accessor_idx
 
     def filter_deform_bones(self, gltf: "glTFImporter"):

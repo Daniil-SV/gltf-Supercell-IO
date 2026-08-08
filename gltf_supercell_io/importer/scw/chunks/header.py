@@ -11,7 +11,7 @@ class ScwHeader(ScwChunk):
     frame_end = 0
     materials_file: Optional[str] = None
 
-    def __br_read__(self, br: "BinaryReader"):
+    def __br_read__(self, br: "BinaryReader", *args, **kwargs):
         self.version, self.frame_rate, self.frame_start, self.frame_end = (
             br.read_uint16(4)
         )

@@ -3,26 +3,27 @@ import numpy as np
 from dataclasses import dataclass
 
 
-def dtype_from_size(size: int):
+def dtype_from_size(size: int, unsigned=True):
+    sign = "u" if unsigned else "i"
     match size:
         case 1:
-            return np.dtype(">u1")
+            return np.dtype(f">{sign}{size}")
         case 2:
-            return np.dtype(">u2")
+            return np.dtype(f">{sign}{size}")
         case 4:
-            return np.dtype(">u4")
+            return np.dtype(f">{sign}{size}")
         case 8:
-            return np.dtype(">u8")
+            return np.dtype(f">{sign}{size}")
         case _:
-            raise ImportError("Incorrect SCW mesh triangle index size!")
+            raise ImportError("Incorrect SCW data size!")
 
 
 @dataclass
 class ScwPrimitive(ScwChunk):
     material_bind_name = ""
-    attribute_triangles: tuple[np.ndarray, ...] = ()
+    attribute_indices: tuple[np.ndarray, ...] = ()
 
-    def __br_read__(self, br: "BinaryReader"):
+    def __br_read__(self, br: "BinaryReader", *args, **kwargs):
         self.material_bind_name = br.read_str()
 
         count = br.read_int32()
@@ -30,7 +31,11 @@ class ScwPrimitive(ScwChunk):
         size = br.read_uint8()
 
         size_dtype = dtype_from_size(size)
-        data_size = count * inputs_count * 3 * size
-        dtypes = [(f"f{i}", size_dtype, (3,)) for i in range(inputs_count)]
-        arr = np.frombuffer(br.read_bytes(data_size), np.dtype(dtypes), count=count)
-        self.attribute_triangles = tuple([arr[f"f{i}"] for i in range(inputs_count)])
+        triangles_count = count * inputs_count
+        elements_count = count * inputs_count * 3
+        data_size = elements_count * size
+        array = np.frombuffer(
+            br.read_bytes(data_size), size_dtype, count=elements_count
+        ).reshape(triangles_count, 3)
+
+        self.attribute_indices = tuple([array[:, i] for i in range(inputs_count)])

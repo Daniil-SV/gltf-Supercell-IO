@@ -7,7 +7,8 @@ if TYPE_CHECKING:
     from ..ui import glTFSupercellImporterProperties
     from io_scene_gltf2.blender.imp.vnode import VNode
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-    from io_scene_gltf2.io.com.gltf2_io import Material, Node, Mesh, Scene
+    from io_scene_gltf2.io.com.gltf2_io import Material, Node, Mesh, Scene, Accessor
+    from io_scene_gltf2.io.imp.user_extensions import MutatingArgument
 
 
 class IMPORT_mesh_options(Protocol):
@@ -117,6 +118,15 @@ class glTF2BaseImporterComponent:
         self,
         gltf_scene: "Scene | None",
         blender_scene: bpy.types.Scene,
+        gltf: "glTFImporter",
+    ):
+        pass
+
+    @abstractmethod
+    def decode_accessor_before_hook(
+        self,
+        accessor: "Accessor",
+        array: "MutatingArgument",
         gltf: "glTFImporter",
     ):
         pass

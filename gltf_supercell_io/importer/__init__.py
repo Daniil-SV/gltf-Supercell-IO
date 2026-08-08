@@ -78,3 +78,16 @@ class glTF2ImportUserExtension(
             blender_scene,
             gltf,
         )
+
+    def decode_accessor_before_hook(
+        self,
+        accessor,
+        array,
+        gltf,
+    ):
+        self(
+            "decode_accessor_before_hook",
+            accessor,
+            array,
+            gltf,
+        )

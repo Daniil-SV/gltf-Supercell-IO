@@ -470,8 +470,9 @@ class BinaryReader:
         if count is not None:
             result = []
 
-            for _ in range(count):
+            for i in range(count):
                 br_struct = cls()
+                kwargs["index"] = i
                 br_struct.__br_read__(self, *args, **kwargs)
                 result.append(br_struct)
 

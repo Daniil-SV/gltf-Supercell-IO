@@ -13,6 +13,7 @@ class Vector:
     def values(self):
         return (self.x, self.y, self.z)
 
+
 @dataclass
 class ScwFrame(ScwChunk):
     index = 0
@@ -20,26 +21,31 @@ class ScwFrame(ScwChunk):
     rotation: Optional[Tuple[float, ...]] = None
     scale: Vector = field(default_factory=Vector)
 
-    def __br_read__(self, br: "BinaryReader", flags=0) -> None:
+    def __br_read__(
+        self, br: "BinaryReader", flags=0, index=0, *args, **kwargs
+    ) -> None:
+        if index == 0:
+            flags = 0xFF
+
         self.index = br.read_uint16()
 
-        if (flags & 1) == 0:
+        if (flags & 1) != 0:
             self.rotation = br.read_norm_half_float(4)
 
-        if (flags & 2) == 0:
+        if (flags & 2) != 0:
             self.translation.x = br.read_float()
 
-        if (flags & 4) == 0:
+        if (flags & 4) != 0:
             self.translation.y = br.read_float()
 
-        if (flags & 8) == 0:
+        if (flags & 8) != 0:
             self.translation.z = br.read_float()
 
-        if (flags & 16) == 0:
+        if (flags & 16) != 0:
             self.scale.x = br.read_float()
 
-        if (flags & 32) == 0:
+        if (flags & 32) != 0:
             self.scale.y = br.read_float()
 
-        if (flags & 64) == 0:
+        if (flags & 64) != 0:
             self.scale.z = br.read_float()

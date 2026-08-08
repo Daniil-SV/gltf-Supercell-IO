@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, List
 from .component import glTF2BaseImporterComponent, requires_extension
 
 from ...com import glTF_extension_name, glTF_material_extension_name
+from ...com.utilities.accessor import MemoryAccessor
 from io_scene_gltf2.blender.imp.vnode import VNode
 
 from io_scene_gltf2.io.com.gltf2_io import (
@@ -13,12 +14,12 @@ from io_scene_gltf2.io.com.gltf2_io import (
     Scene,
     Animation,
     Skin,
+    Accessor,
 )
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
     from io_scene_gltf2.io.com.gltf2_io import (
-        Accessor,
         Node,
     )
     from io_scene_gltf2.blender.imp.node import VNode
@@ -42,6 +43,9 @@ class CommonImporter(glTF2BaseImporterComponent):
 
         accessors: List[Accessor] = gltf.data.accessors or []
         for accessor in accessors:
+            if not isinstance(accessor, Accessor):
+                continue
+
             accessor.component_type = accessor.component_type & 0x0000FFFF
 
     def move_materials(self, gltf: "glTFImporter"):
@@ -439,3 +443,14 @@ class CommonImporter(glTF2BaseImporterComponent):
     def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene, gltf):
         if self.properties.adjust_colorspace:
             blender_scene.view_settings.view_transform = "Raw"  # type: ignore
+
+    def decode_accessor_before_hook(
+        self,
+        accessor,
+        array,
+        gltf,
+    ):
+        if not isinstance(accessor, MemoryAccessor):
+            return
+
+        array.value = accessor.value

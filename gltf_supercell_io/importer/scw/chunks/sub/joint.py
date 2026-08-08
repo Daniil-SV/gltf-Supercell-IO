@@ -8,6 +8,6 @@ class ScwJoint(ScwChunk):
     name = ""
     inverse_bind_matrix: Matrix = field(default_factory=Matrix)
 
-    def __br_read__(self, br: "BinaryReader"):
+    def __br_read__(self, br: "BinaryReader", *args, **kwargs):
         self.name = br.read_str()
         self.inverse_bind_matrix = br.read_matrix()

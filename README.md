@@ -15,7 +15,7 @@ Essentially, it is a reimagined version of [Flat Converter](https://github.com/D
 
 Requirements
 ------------
-Extension works on Blender 5.0+ *only*
+Preferable version Blender version 5.2+
 
 Installation
 ------------

@@ -14,10 +14,7 @@ class SupercellGLTFPreferences(AddonPreferences):
     # when defining this for add-on extensions or a sub-module of a Python package.
     bl_idname = get_package_name()
 
-    texture_lookup: CollectionProperty(
-        type=DirectoryStringItem,
-        name="Paths"
-    )
+    texture_lookup: CollectionProperty(type=DirectoryStringItem, name="Paths")
 
     def draw(self, context):
         layout = self.layout
@@ -32,11 +29,11 @@ class SupercellGLTFPreferences(AddonPreferences):
 
 def get_prefs() -> SupercellGLTFPreferences | None:
     prefs = bpy.context.preferences
-    if (prefs is None):
+    if prefs is None:
         return None
 
     addon = prefs.addons[get_package_name()]
-    if (addon is None or addon.preferences is None):
+    if addon is None or addon.preferences is None:
         return None
 
     return cast(SupercellGLTFPreferences, addon.preferences)

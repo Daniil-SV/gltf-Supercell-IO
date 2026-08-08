@@ -1,5 +1,5 @@
 from . import ScwChunk
-from typing import Optional, Tuple
+from typing import Optional
 from dataclasses import dataclass
 from ....com.utilities.binary_reader import BinaryReader, Whence
 from mathutils import Matrix
@@ -7,9 +7,11 @@ import numpy as np
 
 from .sub.attribute import ScwAttribute
 from .sub.joint import ScwJoint
-from .sub.primitive import ScwPrimitive
+from .sub.primitive import ScwPrimitive, dtype_from_size
 
-weights_dtype = np.dtype([("joints", np.uint8, (4,)), ("weights", np.uint16, (4,))])
+weights_dtype = np.dtype(
+    [("joints", dtype_from_size(1), (4,)), ("weights", dtype_from_size(2), (4,))]
+)
 
 
 @dataclass
@@ -17,16 +19,17 @@ class ScwWeights:
     joints: np.ndarray
     weights: np.ndarray
 
+
 @dataclass
 class ScwGeometry(ScwChunk):
     name: str = "Mesh"
-    attributes: Tuple[ScwAttribute, ...] = ()
+    attributes: tuple[ScwAttribute, ...] = ()
     bind_matrix: Optional[Matrix] = None
-    joints: Tuple[ScwJoint, ...] = ()
+    joints: tuple[ScwJoint, ...] = ()
     weights: Optional[ScwWeights] = None
-    primitives: Tuple[ScwPrimitive, ...] = ()
+    primitives: tuple[ScwPrimitive, ...] = ()
 
-    def __br_read__(self, br: "BinaryReader", version: int = -1):
+    def __br_read__(self, br: "BinaryReader", version: int = -1, *args, **kwargs):
         self.name = br.read_str() or "Mesh"
         br.read_str()  # Group name
 
@@ -50,7 +53,7 @@ class ScwGeometry(ScwChunk):
                 weights_data, dtype=weights_dtype, count=weights_count
             )
 
-            self.weights = ScwWeights(weights["joints"], weights["weights"])
+            self.weights = ScwWeights(weights["joints"], weights["weights"] / 0xFFFF)
 
         primitives_count = br.read_uint8()
         self.primitives = br.read_struct(ScwPrimitive, primitives_count)
