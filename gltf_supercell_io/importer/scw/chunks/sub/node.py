@@ -5,15 +5,14 @@ from ..instance.controller_instance import ScwControllerInstance
 from ..instance.camera_instance import ScwCameraInstance
 from .. import ScwChunk, BinaryReader
 from dataclasses import dataclass
-from typing import Tuple, Optional
-
+from typing import Optional
 
 @dataclass
 class ScwNode(ScwChunk):
     name = ""
     parent: Optional[str] = None
-    instances: Tuple[ScwInstance, ...] = ()
-    frames: Tuple[ScwFrame, ...] = ()
+    instances: tuple[ScwInstance, ...] = ()
+    frames: tuple[ScwFrame, ...] = ()
 
     def __br_read__(self, br: "BinaryReader", version=-1, *args, **kwargs) -> None:
         self.name = br.read_str()

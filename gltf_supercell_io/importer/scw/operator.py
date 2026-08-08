@@ -10,9 +10,9 @@ class ImportSCW(Operator, ExportGLTF2_Base, ImportHelper):  # type: ignore
     bl_idname = "import_scene.scw"
     bl_label = "Import SCW"
 
-    filter_glob: StringProperty(default="*.scw", options={"HIDDEN"})
-
     __annotations__ = dict(ImportGLTF2.__annotations__)
+
+    filter_glob: StringProperty(default="*.scw", options={"HIDDEN"})
 
     def draw(self, context):
         return ImportGLTF2.draw(self, context)  # type: ignore

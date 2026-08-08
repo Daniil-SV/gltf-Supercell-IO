@@ -103,6 +103,8 @@ class glTFSupercellImporterProperties(PropertyGroup):
         default=True,
     )
 
+    importing_scw: BoolProperty()
+
 
 def draw_import(context: Context, layout: UILayout):
     if not context.scene:

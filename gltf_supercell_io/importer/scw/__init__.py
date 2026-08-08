@@ -7,10 +7,12 @@ from .chunks.header import ScwHeader
 from .chunks.geometry import ScwGeometry, ScwWeights
 from .chunks.nodes import ScwNodes
 from .chunks.material import ScwMaterial, Color as ScwColor, Texture as ScwTexture
+from .chunks.instance import ScwInstance
 from .chunks.instance.controller_instance import (
     ScwGeometryInstance,
     ScwControllerInstance,
 )
+from .chunks.instance.camera_instance import ScwCameraInstance
 from .chunks.sub.attribute import ScwAttribute
 from .chunks.sub.primitive import ScwPrimitive
 from .chunks.sub.joint import ScwJoint
@@ -154,7 +156,7 @@ class ScwFile:
             if mesh.bind_matrix is not None:
                 for joint in joints:
                     joint.inverse_bind_matrix = (
-                        mesh.bind_matrix @ joint.inverse_bind_matrix
+                        joint.inverse_bind_matrix @ mesh.bind_matrix
                     )
 
             self.imported_skins[mesh.name] = joints
@@ -199,9 +201,6 @@ class ScwFile:
         self.mesh_instances[key] = mesh_idx
         return mesh_idx
 
-    def _instantiate_mesh_instance(self, instance: ScwGeometryInstance) -> int:
-        return self._instantiate_mesh(instance.target_mesh, instance.material_binding)
-
     def _create_skin(self, name: str, nodes: ScwNodes) -> int:
         joints_idx: list[int] = []
         inv_matrices: int | None = None
@@ -211,7 +210,9 @@ class ScwFile:
             joints = self.imported_skins[name]
 
             joints_idx = [keys.index(joint.name) for joint in joints]
-            joints_matrices = [joint.inverse_bind_matrix for joint in joints]
+            joints_matrices = [
+                joint.inverse_bind_matrix.transposed() for joint in joints
+            ]
             inv_matrices = self._create_accessor(
                 np.asarray(
                     [matrix[:] for matrix in joints_matrices], dtype=np.float32
@@ -230,6 +231,9 @@ class ScwFile:
         self.gltf.data.skins.append(gltf_skin)
         return skin_idx
 
+    def _instantiate_mesh_instance(self, instance: ScwGeometryInstance) -> int:
+        return self._instantiate_mesh(instance.target_mesh, instance.material_binding)
+
     def _instantiate_skinned_mesh_instance(
         self, instance: ScwControllerInstance, nodes: ScwNodes
     ) -> tuple[int, int]:
@@ -239,6 +243,40 @@ class ScwFile:
 
         skin_idx = self._create_skin(instance.target_mesh, nodes)
         return (mesh_idx, skin_idx)
+
+    def _import_node_instance(self, node: Node, instance: ScwInstance, nodes: ScwNodes):
+        # Skinned geometry
+        if isinstance(instance, ScwControllerInstance):
+            node.mesh, node.skin = self._instantiate_skinned_mesh_instance(instance, nodes)  # type: ignore
+
+        # Geometry
+        elif isinstance(instance, ScwGeometryInstance):
+            node.mesh = self._instantiate_mesh_instance(instance)  # type: ignore
+
+    def _import_node_instances(
+        self, instances: tuple[ScwInstance, ...], node: Node, nodes: ScwNodes
+    ):
+        if len(instances) == 1:
+            return self._import_node_instance(node, instances[0], nodes)
+
+        # Should create additional children node for each instance if there a few
+        for i, instance in enumerate(instances):
+            gltf_node = Node(
+                None, [], None, None, None, None, None, None, None, None, None, None
+            )
+
+            node_name = node.name
+            if isinstance(instance, ScwControllerInstance):
+                node_name = f"{node.name}-contoller-{i}"
+            elif isinstance(instance, ScwGeometryInstance):
+                node_name = f"{node.name}-geometry-{i}"
+            elif isinstance(instances, ScwCameraInstance):
+                node_name = f"{node.name}-camera-{i}"
+
+            gltf_node.name = node_name  # type: ignore
+            self._import_node_instance(gltf_node, instance, nodes)
+            node.children.append(len(self.gltf.data.nodes))
+            self.gltf.data.nodes.append(gltf_node)
 
     def _import_nodes(self, nodes: ScwNodes):
         gltf_nodes = [
@@ -284,14 +322,7 @@ class ScwFile:
                 gltf_node.scale = [val or 1.0 for val in frame.scale.values]  # type: ignore
 
             # Processing instances
-            for instance in node.instances:
-                # Skinned geometry
-                if isinstance(instance, ScwControllerInstance):
-                    gltf_node.mesh, gltf_node.skin = self._instantiate_skinned_mesh_instance(instance, nodes)  # type: ignore
-
-                # Geometry
-                elif isinstance(instance, ScwGeometryInstance):
-                    gltf_node.mesh = self._instantiate_mesh_instance(instance)  # type: ignore
+            self._import_node_instances(node.instances, gltf_node, nodes)
 
             # TODO: Animation
             if len(node.frames) > 1:

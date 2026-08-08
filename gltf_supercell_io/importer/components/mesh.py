@@ -133,6 +133,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         skin_idx,
         gltf,
     ):
+        
         # Story:
         # Some of the bones has scale property in nodes (finger bones from grom_geo.glb Brawl Stars, for example)
         # Well, most likely optimizer skill issue
@@ -141,7 +142,9 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         # but for blender this behavior is very inconvenient and critical
         # This exact option prevents mesh from transformation with most of the time broken scale value
         # We will handle this case separately later
-        mesh_options.skin_into_bind_pose = False
+        # BUT! apply skin to scw files, it would be useful with its mesh bind matrices
+        if not self.properties.importing_scw:
+            mesh_options.skin_into_bind_pose = False
 
         # Sooo... since exporter setups some settings at top-level of mesh conversion
         # we need to decode all mesh infos here to have them ready for primitives decoding

@@ -408,6 +408,7 @@ class CommonImporter(glTF2BaseImporterComponent):
 
     @requires_extension
     def gather_import_gltf_before_hook(self, gltf):
+        self.properties.importing_scw = Path(gltf.filename).suffix == ".scw"
         self.process_accessors(gltf)
         self.move_materials(gltf)
         self.move_animation(gltf)

@@ -191,8 +191,10 @@ class ShaderImporter(ShaderUtils):
             print(e)
 
     def try_load_texture_image(self, path: Path) -> Image | None:
-        image_converter = load_image_converter()
+        if not str(path) or str(path) == ".":
+            return None
 
+        image_converter = load_image_converter()
         IMAGE_CONVERTER_EXTENSIONS: list[str] = (
             []
             if image_converter is None
