@@ -31,11 +31,10 @@ class ScwPrimitive(ScwChunk):
         size = br.read_uint8()
 
         size_dtype = dtype_from_size(size)
-        triangles_count = count * inputs_count
         elements_count = count * inputs_count * 3
         data_size = elements_count * size
         array = np.frombuffer(
             br.read_bytes(data_size), size_dtype, count=elements_count
-        ).reshape(triangles_count, 3)
+        ).reshape((count * 3, inputs_count))
 
         self.attribute_indices = tuple([array[:, i] for i in range(inputs_count)])

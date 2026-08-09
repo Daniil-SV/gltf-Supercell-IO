@@ -48,6 +48,8 @@ def _source_to_gltf_name(name: str):
             return "NORMAL"
         case "texcoord":
             return "TEXCOORD_0"
+        case "color":
+            return "COLOR_0"
         case _:
             raise ImportError(f"Unknown SCW attribute name {name}")
 
