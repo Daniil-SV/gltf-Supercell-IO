@@ -64,7 +64,7 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
     ):
         extensions = gltf_material.extensions = gltf_material.extensions or {}
         descriptor: dict | None = extensions.get(glTF_material_extension_name)  # type: ignore
-        if descriptor is None:
+        if descriptor is None or isinstance(descriptor, ScShaderMaterial):
             return
 
         material_name: str | None = descriptor.get("name")

@@ -65,6 +65,31 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
 
         gltf.supercell_vertex_cache[idx] = attributes  # type: ignore
 
+    def handle_vertex_color(self, gltf: "glTFImporter", primitive: "MeshPrimitive"):
+        # TRICK: gltf importer proceeds vertex color kinda... strangely.
+        # It creates separate material specifically if there is COLOR_0 attribute.
+        # Should i say that this thing breaks EVERYTHING?
+        # So... We need to trick gltf importer and somehow avoid creating
+        # this stupid materials and also import this color attributes, so user can decide yourself what to do with that
+        # or in the future i will add custom processing anyway
+        # So I came up with the idea that we need to get ahead of
+        # gltf importer and import materials manually, filling in all variations as needed
+
+        # Checking if primitive has color and material at all
+        if "COLOR_0" in primitive.attributes and primitive.material is not None:
+            pymaterial = gltf.data.materials[primitive.material]
+            mat = pymaterial.blender_material
+
+            # Create ahead of time
+            if None not in mat:
+                BlenderMaterial.create(gltf, primitive.material, None)
+
+            # Fill material variants dict
+            i = 0
+            while ("COLOR_%d" % i) in primitive.attributes:
+                mat[f"COLOR_{i}"] = mat[None]
+                i += 1
+
     def decode_primitive(self, gltf: "glTFImporter", primitive: "MeshPrimitive"):
         extensions = primitive.extensions
         if extensions is None:
@@ -101,30 +126,6 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
 
             gltf.supercell_vertex_accessor_offset += 1  # type: ignore
 
-        # TRICK: gltf importer proceeds vertex color kinda... strangely.
-        # It creates separate material specifically if there is COLOR_0 attribute.
-        # Should i say that this thing breaks EVERYTHING?
-        # So... We need to trick gltf importer and somehow avoid creating
-        # this stupid materials and also import this color attributes, so user can decide yourself what to do with that
-        # or in the future i will custom processing anyway
-        # So I came up with the idea that we need to get ahead of
-        # gltf importer and import materials manually, filling in all variations as needed
-
-        # Checking if primitive has color and material at all
-        if "COLOR_0" in primitive.attributes and primitive.material is not None:
-            pymaterial = gltf.data.materials[primitive.material]
-            mat = pymaterial.blender_material
-
-            # Create ahead of time
-            if None not in mat:
-                BlenderMaterial.create(gltf, primitive.material, None)
-
-            # Fill material variants dict
-            i = 0
-            while ("COLOR_%d" % i) in primitive.attributes:
-                mat[f"COLOR_{i}"] = mat[None]
-                i += 1
-
     @requires_extension
     def gather_import_mesh_options(
         self,
@@ -133,7 +134,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         skin_idx,
         gltf,
     ):
-        
+
         # Story:
         # Some of the bones has scale property in nodes (finger bones from grom_geo.glb Brawl Stars, for example)
         # Well, most likely optimizer skill issue
@@ -156,3 +157,4 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         primitives: List["MeshPrimitive"] = pymesh.primitives or []
         for primitive in primitives:
             self.decode_primitive(gltf, primitive)
+            self.handle_vertex_color(gltf, primitive)
