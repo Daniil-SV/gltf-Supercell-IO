@@ -1,6 +1,6 @@
 from pathlib import PurePath
 import bpy
-from bpy.types import Material, Image, NodeSocketFloatFactor
+from bpy.types import Material, Image, NodeSocketFloatFactor, NodeSocketBool
 from ..materials import ScShaderMaterial, ScBlendMode
 from .nodes import ShaderNodeScShader
 from ..shader_presets import ShaderPresets
@@ -10,10 +10,6 @@ from ..materials.variables import (
     ShaderFloatProperty,
     ShaderBooleanProperty,
     ShaderTextureProperty,
-)
-from io_scene_gltf2.blender.exp.material.search_node_tree import (
-    has_image_node_from_socket,
-    NodeSocket,
 )
 from io_scene_gltf2.blender.exp.material.image import __make_image as make_image
 from io_scene_gltf2.io.com import gltf2_io
@@ -39,27 +35,26 @@ class ShaderExporter:
         self.modifiers = modifiers
         self.export_settings = export_settings
 
-    def set_blend_from_opacity_socket(self, index: int):
+    def set_blend_from_opacity_socket(
+        self, toggle_socket_idx: int, value_socket_idx: int
+    ):
         """Set the blend mode based on the opacity socket"""
-        socket = self.shader.inputs[index]
-        if not isinstance(socket, NodeSocketFloatFactor):
-            print("Warning: Failed to get opacity float socket in SC IO shader")
+        value_socket = self.shader.inputs[value_socket_idx]
+        toggle_socket = self.shader.inputs[toggle_socket_idx]
+
+        if not isinstance(value_socket, NodeSocketFloatFactor) or not isinstance(
+            toggle_socket, NodeSocketBool
+        ):
+            print("Warning: Failed to get opacity sockets in SC IO shader")
             return
 
-        has_alpha = False
-        if (
-            has_image_node_from_socket(NodeSocket(socket, []), {})
-            or socket.default_value != 1.0
-        ):
-            has_alpha = True
+        alpha_enabled = toggle_socket.default_value
+        if alpha_enabled:
+            self.set_constant_prop("OPACITY", toggle_socket_idx)
 
         render_method = self.material.surface_render_method
-        if has_alpha and render_method == "DITHERED":
-            self.sc_material.blend_mode = ScBlendMode.ADDITIVE
-        elif has_alpha and render_method == "BLENDED":
+        if render_method == "BLENDED":
             self.sc_material.blend_mode = ScBlendMode.PREMULTIPLIED
-        elif render_method == "BLENDED":
-            self.sc_material.blend_mode = ScBlendMode.MULTIPLY
         else:
             self.sc_material.blend_mode = ScBlendMode.OPAQUE
 

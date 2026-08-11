@@ -12,7 +12,6 @@ CONSTANT_MAP = {
     4: "SPECULAR",
     7: "COLORIZE",
     9: "LIGHTMAP",
-    12: "OPACITY",
     14: "EMISSION",
     16: "STENCIL",
     20: "CLIP_PLANE",
@@ -34,6 +33,7 @@ LIGHTMAP_MAP = {
     11: "lightmapSpecular",
 }
 
+OPACITY_ENABLE = 12
 OPACITY = 13
 STENCIL_ENABLE = 17
 STENCIL_TEXTURE = 18
@@ -75,5 +75,5 @@ class BrawlStarsLegacy(ShaderPresetDescriptor):
 
     @staticmethod
     def export_shader(shader: "ShaderExporter"):
-        shader.set_blend_from_opacity_socket(OPACITY)
+        shader.set_blend_from_opacity_socket(OPACITY_ENABLE, OPACITY)
         BrawlStarsLegacy.setup_props(shader)

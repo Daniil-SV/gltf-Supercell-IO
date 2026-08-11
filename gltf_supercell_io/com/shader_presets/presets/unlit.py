@@ -27,7 +27,7 @@ class UnlitPreset(ShaderPresetDescriptor):
 
     @staticmethod
     def export_shader(shader: "ShaderExporter"):
-        shader.set_blend_from_opacity_socket(OPACITY)
+        shader.set_blend_from_opacity_socket(OPACITY_ENABLED, OPACITY)
         UnlitPreset.setup_props(shader)
 
     @staticmethod
@@ -44,7 +44,6 @@ class UnlitPreset(ShaderPresetDescriptor):
 
     @staticmethod
     def setup_opacity(shader: "ShaderImporter | ShaderExporter"):
-        shader.set_constant_prop("OPACITY", OPACITY_ENABLED)
         shader.set_float_prop("opacity", OPACITY)
         shader.set_texture_prop("opacityTex2D", OPACITY)
 

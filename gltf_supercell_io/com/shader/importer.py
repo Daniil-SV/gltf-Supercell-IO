@@ -325,7 +325,7 @@ class ShaderImporter(ShaderUtils):
                 image.use_view_as_render = True
 
         def fallback():
-            image = bpy.data.images.new(str(name), 1, 1)
+            image = bpy.data.images.new(str(name.as_posix()), 1, 1)
             cache_image(image)
             return image
 
