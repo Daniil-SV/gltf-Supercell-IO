@@ -435,12 +435,8 @@ class ScwFile:
 
     def _read_chunks(self, data: BinaryReader):
         while True:
-            length = data.read_int32()
+            data.read_int32()  # chunk length
             signature = data.read_bytes(4)
-            position = data.pos()
-            if 0 > length:
-                # raise ImportError("SCW Chunk has negative length")
-                continue
 
             match signature:
                 case b"HEAD":
@@ -467,7 +463,7 @@ class ScwFile:
                         f"Unknown SCW chunk {signature.decode("ascii")}"
                     )
 
-            data.seek(position + length + 4)
+            data.read_int32()  # chunk crc32 checksum
 
     def read(self):
         if not isfile(self.filename):
