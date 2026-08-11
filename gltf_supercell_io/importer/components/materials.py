@@ -6,6 +6,7 @@ from ...com.shader_presets import ShaderPresets
 from ...com.shader.importer import ShaderImporter
 from ...com.editor.asset_importer import ASSETS_OT_import_api
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+from ..scw import ScwFile
 
 
 class SupercellShaderImporter(glTF2BaseImporterComponent):
@@ -14,15 +15,29 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
         super().__init__(**kwargs)
         self.material_override: list[dict] = []
 
+    def load_material_file(self, filepath: Path, import_settings: dict):
+        if filepath.suffix == ".scw":
+            scw = ScwFile(str(filepath), import_settings)
+            scw.read()
+
+            return scw.gltf
+        else:
+            importer = glTFImporter(str(filepath), import_settings)
+            importer.read()
+
+            return importer
+
     @requires_extension
     def gather_import_gltf_before_hook(self, gltf):
         if not self.properties.material_override:
             return
 
-        candidates: list[Path] = [
-            Path(self.properties.material_override),
-            Path(gltf.import_settings["directory"])
-            / self.properties.material_override,  # Trying with glb directory as base directory
+        base_dir = Path(gltf.import_settings["directory"])
+        materials_path = Path(self.properties.material_override)
+        candidates = [
+            materials_path,
+            base_dir / materials_path,
+            base_dir / materials_path.name,
         ]
 
         filepath = None
@@ -40,11 +55,10 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
         if filepath is None:
             return
 
-        importer = glTFImporter(filepath, {"import_user_extensions": []})
-        importer.read()
+        gltf = self.load_material_file(filepath, {"import_user_extensions": []})
 
         # Gathering usual materials
-        for material in importer.data.materials or []:
+        for material in gltf.data.materials or []:
             if glTF_material_extension_name not in material.extensions or {}:
                 continue
 
@@ -53,8 +67,8 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
             )
 
         # Gathering odin materials
-        if glTF_extension_name in importer.data.extensions:
-            odin: dict = importer.data.extensions[glTF_extension_name]
+        if glTF_extension_name in gltf.data.extensions:
+            odin: dict = gltf.data.extensions[glTF_extension_name]
             for material in odin.get("materials", []):
                 self.material_override.append(material)
 
@@ -64,14 +78,17 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
     ):
         extensions = gltf_material.extensions = gltf_material.extensions or {}
         descriptor: dict | None = extensions.get(glTF_material_extension_name)  # type: ignore
-        if descriptor is None or isinstance(descriptor, ScShaderMaterial):
-            return
+        material_name: str | None = (
+            gltf_material.name if descriptor is None else descriptor.get("name")
+        )
 
-        material_name: str | None = descriptor.get("name")
         if material_name is not None:
             override = self.try_find_override(material_name)
             if override is not None:
                 descriptor = override
+
+        if descriptor is None or isinstance(descriptor, ScShaderMaterial):
+            return
 
         material = descriptor
         if not isinstance(material, ScShaderMaterial):

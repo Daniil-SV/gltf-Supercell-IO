@@ -60,7 +60,7 @@ class Color(BrStruct):
     a: float = 1.0
 
     def __br_read__(self, br: "BinaryReader", *args, **kwargs):
-        self.a, self.r, self.g, self.b = tuple([val / 0xFF for val in br.read_uint8(4)])
+        self.a, self.b, self.g, self.r = tuple([val / 0xFF for val in br.read_uint8(4)])
 
     @property
     def values(self):

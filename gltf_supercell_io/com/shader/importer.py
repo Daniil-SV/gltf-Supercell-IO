@@ -191,9 +191,6 @@ class ShaderImporter(ShaderUtils):
             print(e)
 
     def try_load_texture_image(self, path: Path) -> Image | None:
-        if not str(path) or str(path) == ".":
-            return None
-
         image_converter = load_image_converter()
         IMAGE_CONVERTER_EXTENSIONS: list[str] = (
             []
@@ -375,7 +372,9 @@ class ShaderImporter(ShaderUtils):
             texture: ShaderNodeTexImage = self.tree.nodes.new(
                 "ShaderNodeTexImage"
             )  # type: ignore
-            texture.image = self.load_texture_image(prop)
+
+            if prop.path not in ["", "."]:
+                texture.image = self.load_texture_image(prop)
 
             x, y = self.shader.location
 

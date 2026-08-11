@@ -76,6 +76,9 @@ class ScwFile:
             bpy.context.scene.frame_start = header.frame_start
             bpy.context.scene.frame_end = header.frame_end
 
+        if header.materials_file is not None:
+            self.properties.material_override = header.materials_file
+
     def _create_accessor(self, arr: np.ndarray) -> int:
         result = len(self.gltf.data.accessors)
 
@@ -392,7 +395,7 @@ class ScwFile:
         import_texture("stencil", material.stencil_tex)
         import_texture("normal", material.normal_tex)
         import_surface("colorize", material.colorize)
-        import_texture("emission", material.opacity_tex)
+        import_surface("emission", material.emission)
         import_value("opacity", material.opacity)
         import_value("cutout", material.cutout)
         import_texture("lightmap", material.diffuse_lightmap)
@@ -400,11 +403,12 @@ class ScwFile:
         import_texture("lightmapBaked", material.baked_lightmap)
         import_color("clipPlane", material.clip_plane)
 
+        shader_name = Path(material.shader).with_suffix("").as_posix()
         sc_material = {
             "blendMode": material.blend_mode,
             "constants": material.shader_define.as_list,
             "name": material.name,
-            "shader": Path(material.shader).with_suffix("").as_posix,
+            "shader": shader_name,
             "variables": {
                 "floatVectors": float_vectors,
                 "floats": floats,
