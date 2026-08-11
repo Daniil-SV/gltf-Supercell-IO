@@ -1,8 +1,17 @@
+import bpy
 from ...com.utilities.binary_reader import BinaryReader, Endian
 from ...com.utilities.accessor import MemoryAccessor
+from ..ui import glTFSupercellImporterProperties
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 from io_scene_gltf2.io.imp.gltf2_io_gltf import ImportError
-from .chunks import ScwChunk
+from io_scene_gltf2.io.com.gltf2_io import (
+    Gltf,
+    Node,
+    Mesh,
+    MeshPrimitive,
+    Material,
+    Skin,
+)
 from .chunks.header import ScwHeader
 from .chunks.geometry import ScwGeometry, ScwWeights
 from .chunks.nodes import ScwNodes
@@ -17,21 +26,12 @@ from .chunks.sub.attribute import ScwAttribute
 from .chunks.sub.primitive import ScwPrimitive
 from .chunks.sub.joint import ScwJoint
 from os.path import isfile
-from typing import Optional, cast
-from io_scene_gltf2.io.com.gltf2_io import (
-    Gltf,
-    Node,
-    Mesh,
-    MeshPrimitive,
-    Material,
-    Skin,
-)
 from ...com import glTF_material_extension_name
 from copy import copy
 from dataclasses import dataclass
 import numpy as np
-
-CHUNKS: list[type[ScwChunk]] = [ScwHeader]
+from pathlib import Path
+from typing import Optional, cast, Any
 
 
 @dataclass(frozen=True)
@@ -56,16 +56,25 @@ def _source_to_gltf_name(name: str):
 
 class ScwFile:
     def __init__(self, filename: str, settings: dict) -> None:
+        self.version = -1
+        self.frame_rate = 30
         self.filename = filename
         self.gltf = glTFImporter(filename, settings)
         self.imported_meshes: dict[str, Mesh] = {}
         self.imported_materials: list[str] = []
         self.imported_skins: dict[str, tuple[ScwJoint, ...]] = {}
         self.mesh_instances: dict[CachedMeshInstance, int] = {}
-        self.version = -1
+        self.properties: glTFSupercellImporterProperties = cast(
+            Any, bpy.context.scene
+        ).glTFSupercellImporterProperties
 
     def _import_header(self, header: ScwHeader):
         self.version = header.version
+        self.frame_rate = header.frame_rate
+
+        if bpy.context.scene and self.properties.setup_timeline:
+            bpy.context.scene.frame_start = header.frame_start
+            bpy.context.scene.frame_end = header.frame_end
 
     def _create_accessor(self, arr: np.ndarray) -> int:
         result = len(self.gltf.data.accessors)
@@ -395,7 +404,7 @@ class ScwFile:
             "blendMode": material.blend_mode,
             "constants": material.shader_define.as_list,
             "name": material.name,
-            "shader": material.shader,
+            "shader": Path(material.shader).with_suffix("").as_posix,
             "variables": {
                 "floatVectors": float_vectors,
                 "floats": floats,

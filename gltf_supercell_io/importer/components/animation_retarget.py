@@ -337,8 +337,10 @@ class AnimationImporter(glTF2BaseImporterComponent):
         if source_animation is not None and source_animation.action_slot is not None:
             action.slots.remove(source_animation.action_slot)
 
-        scene.frame_start = start
-        scene.frame_end = end
+        if self.properties.setup_timeline:
+            scene.frame_start = start
+            scene.frame_end = end
+
         return True
 
     @requires_extension

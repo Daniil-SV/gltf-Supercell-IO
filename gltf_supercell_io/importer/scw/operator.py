@@ -4,7 +4,8 @@ from bpy_extras.io_utils import ImportHelper, poll_file_object_drop
 from io_scene_gltf2 import ImportGLTF2, ExportGLTF2_Base
 from io_scene_gltf2.blender.imp.blender_gltf import BlenderGlTF
 from . import ScwFile
-
+from typing import cast, Any
+from ..ui import glTFSupercellImporterProperties
 
 class ImportSCW(Operator, ExportGLTF2_Base, ImportHelper):  # type: ignore
     bl_idname = "import_scene.scw"
@@ -50,6 +51,12 @@ class ImportSCW(Operator, ExportGLTF2_Base, ImportHelper):  # type: ignore
         return ImportGLTF2.import_gltf2(self, context)  # type: ignore
 
     def execute(self, context):  # type: ignore
+        # We need to set importing here to proper render SCW specific options
+        scene = cast(Any, context.scene)
+        properties: glTFSupercellImporterProperties = (
+            scene.glTFSupercellImporterProperties
+        )
+        properties.importing_scw = True
         return self.import_gltf2(context)
 
 

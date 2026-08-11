@@ -1,6 +1,4 @@
 import bpy
-from typing import cast, Any
-
 from .exporter.ui import glTFSupercellExporterProperties
 from .importer.ui import glTFSupercellImporterProperties, glTFSupercellTextureOverride
 from .com.shader.handler import shader_linkage_handler
@@ -11,9 +9,9 @@ from .com.editor import (
     SHADER_PT_SC_create_utilities,
 )
 from .exporter.ui import draw_export
-from .exporter import glTF2ExportUserExtension
-from .importer.ui import draw_import
-from .importer import glTF2ImportUserExtension
+from .exporter import glTF2ExportUserExtension as glTF2ExportUserExtension
+from .importer.ui import draw_import as draw_import
+from .importer import glTF2ImportUserExtension as glTF2ImportUserExtension
 from .importer.patches import flatbuffer_glb, skinned_mesh
 from .com.utilities.patcher import register_patch, unregister_patch
 from .exporter.patches import (
@@ -45,6 +43,7 @@ from .com.editor.asset_importer import (
 )
 from .importer.scw.operator import ImportSCW, scw_func_import, IO_FH_scw
 from .preferences import SupercellGLTFPreferences
+from typing import cast, Any
 
 classes = [
     # String array panel

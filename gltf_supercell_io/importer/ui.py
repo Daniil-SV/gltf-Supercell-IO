@@ -44,7 +44,7 @@ class glTFSupercellImporterProperties(PropertyGroup):
 
     better_settings: BoolProperty(
         name="Custom glTF importer settings",
-        description="Sets some importer settings to better values for Supercell models",
+        description='Sets some importer settings to better values for Supercell models.\nCurrently this is:\n   -Disable bone shapes\n   -Set bone heuristics to "Blender" for better re-exporting\n   -Merge vertices, to avoid UV map seams on model\n   -Disable original bind pose guess to avoid some models damaging',
         default=True,
     )
 
@@ -52,7 +52,11 @@ class glTFSupercellImporterProperties(PropertyGroup):
         name="Material preset",
         description="Select shader preset for imported material",
         items=[
-            ("None", "None", "Do not import Supercell materials in any way"),
+            (
+                "None",
+                "None",
+                "Do not import Supercell materials. glTF importer will handle materials on its own.",
+            ),
             (str(ShaderPresetType.UNLIT), "Unlit", "Use unlit materials"),
             (
                 str(ShaderPresetType.BRAWL_STARS_LEGACY),
@@ -103,6 +107,12 @@ class glTFSupercellImporterProperties(PropertyGroup):
         default=True,
     )
 
+    setup_timeline: BoolProperty(
+        name="Setup timeline",
+        description="Sets scene start and end frame if the file is a SCW or glTF and has Odin animation",
+        default=True,
+    )
+
     importing_scw: BoolProperty()
 
 
@@ -131,3 +141,4 @@ def draw_import(context: Context, layout: UILayout):
     body.prop(props, "better_settings")
     body.prop(props, "adjust_colorspace")
     body.prop(props, "apply_animation")
+    body.prop(props, "setup_timeline")
