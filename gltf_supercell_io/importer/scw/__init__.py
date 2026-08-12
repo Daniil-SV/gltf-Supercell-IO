@@ -11,10 +11,14 @@ from io_scene_gltf2.io.com.gltf2_io import (
     MeshPrimitive,
     Material,
     Skin,
+    Animation,
+    AnimationChannel,
+    AnimationSampler,
+    AnimationChannelTarget,
 )
 from .chunks.header import ScwHeader
 from .chunks.geometry import ScwGeometry, ScwWeights
-from .chunks.nodes import ScwNodes
+from .chunks.nodes import ScwNodes, ScwNode
 from .chunks.material import ScwMaterial, Color as ScwColor, Texture as ScwTexture
 from .chunks.instance import ScwInstance
 from .chunks.instance.controller_instance import (
@@ -32,6 +36,8 @@ from dataclasses import dataclass
 import numpy as np
 from pathlib import Path
 from typing import Optional, cast, Any
+
+ANIM_CHANNELS = [("translation", 3), ("rotation", 4), ("scale", 3)]
 
 
 @dataclass(frozen=True)
@@ -72,9 +78,15 @@ class ScwFile:
         self.version = header.version
         self.frame_rate = header.frame_rate
 
-        if bpy.context.scene and self.properties.setup_timeline:
-            bpy.context.scene.frame_start = header.frame_start
-            bpy.context.scene.frame_end = header.frame_end
+        if bpy.context.scene:
+            if self.properties.setup_timeline:
+                bpy.context.scene.frame_start = header.frame_start
+                bpy.context.scene.frame_end = header.frame_end
+
+            if self.properties.fps_source == "SEQUENCE":
+                bpy.context.scene.render.fps = header.frame_rate
+            elif self.properties.fps_source == "CUSTOM":
+                bpy.context.scene.render.fps = self.properties.fps_custom
 
         if header.materials_file is not None:
             self.properties.material_override = header.materials_file
@@ -292,6 +304,59 @@ class ScwFile:
             node.children.append(len(self.gltf.data.nodes))
             self.gltf.data.nodes.append(gltf_node)
 
+    def _get_or_create_animation(self) -> Animation:
+        if len(self.gltf.data.animations) == 0:
+            animation_name = Path(self.gltf.filename).stem
+            animation = Animation([], None, None, animation_name, [])
+            self.gltf.data.animations.append(animation)
+            return animation
+
+        return self.gltf.data.animations[0]
+
+    def _import_node_animation_channel(
+        self,
+        node: ScwNode,
+        target_idx: int,
+        animation: Animation,
+        channel_name: str,
+        count: int,
+    ):
+        sampler_idx = len(animation.samplers)
+        target = AnimationChannelTarget(None, None, target_idx, channel_name)
+        channel = AnimationChannel(None, None, sampler_idx, target)
+
+        frames_count = len(node.frames)
+        timestamps = (
+            np.array([frame.index for frame in node.frames], dtype=np.float32)
+            / self.frame_rate
+        )
+        timestamps = timestamps.reshape((-1, 1))
+
+        outputs = np.zeros((frames_count, count))
+        for idx in range(frames_count):
+            frame = node.frames[idx]
+            values = [val for val in getattr(frame, channel_name)]
+            outputs[idx] = np.array(values, dtype=np.float32)
+
+        sampler = AnimationSampler(
+            None,
+            None,
+            self._create_accessor(timestamps),
+            None,
+            self._create_accessor(outputs),
+        )
+
+        animation.channels.append(channel)
+        animation.samplers.append(sampler)
+
+    def _import_node_animation(self, node: ScwNode, node_idx: int):
+        animation = self._get_or_create_animation()
+
+        for channel, count in ANIM_CHANNELS:
+            self._import_node_animation_channel(
+                node, node_idx, animation, channel, count
+            )
+
     def _import_nodes(self, nodes: ScwNodes):
         gltf_nodes = [
             Node(
@@ -329,18 +394,17 @@ class ScwFile:
             # Processing node bind transformation
             if len(node.frames) > 0:
                 frame = node.frames[0]
-                gltf_node.translation = [val or 0.0 for val in frame.translation.values]  # type: ignore
+                gltf_node.translation = [val for val in frame.translation]  # type: ignore
                 if frame.rotation is not None:
-                    gltf_node.rotation = list(frame.rotation)  # type: ignore
+                    gltf_node.rotation = [val for val in frame.rotation]  # type: ignore
 
-                gltf_node.scale = [val or 1.0 for val in frame.scale.values]  # type: ignore
+                gltf_node.scale = [val for val in frame.scale]  # type: ignore
 
             # Processing instances
             self._import_node_instances(node.instances, gltf_node, nodes)
 
-            # TODO: Animation
             if len(node.frames) > 1:
-                pass
+                self._import_node_animation(node, idx)
 
         self.gltf.data.nodes = gltf_nodes
 

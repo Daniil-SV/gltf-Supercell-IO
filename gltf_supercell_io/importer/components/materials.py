@@ -67,7 +67,7 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
             )
 
         # Gathering odin materials
-        if glTF_extension_name in gltf.data.extensions:
+        if glTF_extension_name in gltf.data.extensions or {}:
             odin: dict = gltf.data.extensions[glTF_extension_name]
             for material in odin.get("materials", []):
                 self.material_override.append(material)

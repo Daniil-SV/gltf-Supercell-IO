@@ -6,4 +6,10 @@ class MixinClass:
 
             method = cls.__dict__.get(method_name)
             if method is not None:
-                method(self, *args, **kwargs)
+                try:
+                    method(self, *args, **kwargs)
+                except Exception:
+                    import traceback
+
+                    print(f"ERROR! Failed to call {method_name} from {cls.__name__}")
+                    print(traceback.print_exc())

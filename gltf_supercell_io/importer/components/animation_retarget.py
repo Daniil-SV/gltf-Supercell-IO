@@ -345,7 +345,8 @@ class AnimationImporter(glTF2BaseImporterComponent):
 
     @requires_extension
     def gather_import_gltf_before_hook(self, gltf):
-        self.armature = self.get_selected_armature()
+        if len(gltf.data.animations) > 0:
+            self.armature = self.get_selected_armature()
 
     @requires_extension
     def gather_import_scene_after_animation_hook(self, gltf_scene, blender_scene, gltf):
