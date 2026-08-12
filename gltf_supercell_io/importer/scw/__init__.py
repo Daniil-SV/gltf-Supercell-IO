@@ -15,6 +15,8 @@ from io_scene_gltf2.io.com.gltf2_io import (
     AnimationChannel,
     AnimationSampler,
     AnimationChannelTarget,
+    Camera,
+    CameraPerspective,
 )
 from .chunks.header import ScwHeader
 from .chunks.geometry import ScwGeometry, ScwWeights
@@ -26,6 +28,7 @@ from .chunks.instance.controller_instance import (
     ScwControllerInstance,
 )
 from .chunks.instance.camera_instance import ScwCameraInstance
+from .chunks.camera import ScwCamera
 from .chunks.sub.attribute import ScwAttribute
 from .chunks.sub.primitive import ScwPrimitive
 from .chunks.sub.joint import ScwJoint
@@ -35,6 +38,7 @@ from copy import copy
 from dataclasses import dataclass
 import numpy as np
 from pathlib import Path
+from math import radians
 from typing import Optional, cast, Any
 
 ANIM_CHANNELS = [("translation", 3), ("rotation", 4), ("scale", 3)]
@@ -70,6 +74,7 @@ class ScwFile:
         self.imported_materials: list[str] = []
         self.imported_skins: dict[str, tuple[ScwJoint, ...]] = {}
         self.mesh_instances: dict[CachedMeshInstance, int] = {}
+        self.imported_cameras: dict[str, int] = {}
         self.properties: glTFSupercellImporterProperties = cast(
             Any, bpy.context.scene
         ).glTFSupercellImporterProperties
@@ -278,6 +283,10 @@ class ScwFile:
         # Geometry
         elif isinstance(instance, ScwGeometryInstance):
             node.mesh = self._instantiate_mesh_instance(instance)  # type: ignore
+            
+        # Camera
+        elif isinstance(instance, ScwCameraInstance):
+            node.camera = self.imported_cameras[instance.camera_name]
 
     def _import_node_instances(
         self, instances: tuple[ScwInstance, ...], node: Node, nodes: ScwNodes
@@ -497,6 +506,20 @@ class ScwFile:
         self.imported_materials.append(material.name)
         self.gltf.data.materials.append(gltf_material)
 
+    def _import_camera(self, camera: ScwCamera):
+        pespective = CameraPerspective(
+            camera.aspect_ratio,
+            None,
+            None,
+            radians(camera.y_fov),
+            camera.z_far,
+            camera.z_near,
+        )
+        gltf_camera = Camera(None, None, camera.name, None, pespective, "perspective")
+        gltf_camera_idx = len(self.gltf.data.cameras)
+        self.imported_cameras[camera.name] = gltf_camera_idx
+        self.gltf.data.cameras.append(gltf_camera)
+
     def _read_chunks(self, data: BinaryReader):
         while True:
             data.read_int32()  # chunk length
@@ -514,6 +537,10 @@ class ScwFile:
                 case b"GEOM":
                     chunk = data.read_struct(ScwGeometry, version=self.version)
                     self._import_mesh(chunk)
+
+                case b"CAME":
+                    chunk = data.read_struct(ScwCamera, version=self.version)
+                    self._import_camera(chunk)
 
                 case b"NODE":
                     chunk = data.read_struct(ScwNodes, version=self.version)
