@@ -378,7 +378,15 @@ class AnimationImporter(glTF2BaseImporterComponent):
 
             for idx in gltf_scene.nodes or []:
                 vnode = vnodes.get(idx)
+
                 if vnode is None:
+                    continue
+
+                is_arma = False
+                if hasattr(vnode, "is_arma"):
+                    is_arma = vnode.is_arma  # type: ignore
+
+                if not is_arma:
                     continue
 
                 if hasattr(vnode, "blender_object"):
