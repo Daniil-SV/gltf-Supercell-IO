@@ -10,9 +10,9 @@ def dtype_from_size(size: int, unsigned=True):
             return np.dtype(f">{sign}{size}")
         case 2:
             return np.dtype(f">{sign}{size}")
+        case 3:
+            raise Exception("TODO:") # np doesnt really support uint24
         case 4:
-            return np.dtype(f">{sign}{size}")
-        case 8:
             return np.dtype(f">{sign}{size}")
         case _:
             raise ImportError("Incorrect SCW data size!")
