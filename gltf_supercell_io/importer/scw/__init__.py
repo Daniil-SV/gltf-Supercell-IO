@@ -555,7 +555,7 @@ class ScwFile:
 						f"Unknown SCW chunk {signature.decode("ascii")}"
 					)
 
-			data.read_int32() # chunk crc32 checksum
+			data.read_uint32() # CRC32 checksum
 			
 			if data.pos() < expected_end_offset:
 				data.seek(expected_end_offset)

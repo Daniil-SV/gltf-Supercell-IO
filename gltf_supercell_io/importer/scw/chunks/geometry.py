@@ -50,9 +50,9 @@ class ScwGeometry(ScwChunk):
 		joints_count = br.read_uint8()
 		self.joints = br.read_struct(ScwJoint, joints_count)
 
-		weight_count = br.read_int32()
+		weight_count = br.read_uint32()
 		if weight_count > 0:
-			# a /= b is faster than a = a / b 
+			# a /= b, xyz(a) is faster than xyz(a / b)
 			if version >= 0.5:
 				weights_data = br.read_bytes(weight_count * 12)
 				weights = np.frombuffer(
