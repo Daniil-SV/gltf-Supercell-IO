@@ -30,7 +30,7 @@ table AccessorSparseIndices {
 	bufferView: int = -1; //glTFid
 
 	/// "description": "The offset relative to the start of the bufferView in bytes. Must be aligned."
-	byteOffset: uint  = 0;
+	byteOffset: uint = 0;
 
 	componentType: ComponentType = UNSIGNED_BYTE;
 
