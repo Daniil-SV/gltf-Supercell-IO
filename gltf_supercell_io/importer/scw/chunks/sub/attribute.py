@@ -15,15 +15,12 @@ class ScwAttribute(ScwChunk):
         self.triangles_index, self.index_set, dimensions = br.read_uint8(3)
 
         scale = br.read_float()
-        count = br.read_int32()
+        count = br.read_uint32()
 
-        self.data = (
-            np.frombuffer(
-                br.read_bytes(count * dimensions * 2),
-                dtype=dtype_from_size(2, unsigned=False),
-            )
-            * 0.000030758
+        self.data = np.frombuffer(
+            br.read_bytes(count * dimensions * 2),
+            dtype=dtype_from_size(2, unsigned=False),
         )
 
-        self.data *= scale
-        self.data = self.data.reshape((count, dimensions), copy=False)
+        self.data *= scale / 32512
+        self.data = self.data.reshape((count, dimensions))
