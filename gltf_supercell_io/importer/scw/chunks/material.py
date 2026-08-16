@@ -134,4 +134,5 @@ class ScwMaterial(ScwChunk):
 
         self.shader_define = ShaderDefine(br.read_uint32())
         if self.shader_define.has(ShaderDefine.CLIP_PLANE):
-            self.clip_plane = br.read_struct(Color)
+            clip_plane = br.read_float(4)
+            self.clip_plane = Color(*clip_plane)

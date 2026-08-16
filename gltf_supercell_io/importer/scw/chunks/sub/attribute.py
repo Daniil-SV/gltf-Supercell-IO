@@ -3,6 +3,7 @@ import numpy as np
 from dataclasses import dataclass
 from .primitive import dtype_from_size
 
+
 @dataclass
 class ScwAttribute(ScwChunk):
     name: str = ""
@@ -17,10 +18,13 @@ class ScwAttribute(ScwChunk):
         scale = br.read_float()
         count = br.read_uint32()
 
-        self.data = np.frombuffer(
-            br.read_bytes(count * dimensions * 2),
-            dtype=dtype_from_size(2, unsigned=False),
+        self.data = (
+            np.frombuffer(
+                br.read_bytes(count * dimensions * 2),
+                dtype=dtype_from_size(2, unsigned=False),
+            )
+            / 32512
         )
 
-        self.data *= scale / 32512
+        self.data *= scale
         self.data = self.data.reshape((count, dimensions))
