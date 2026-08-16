@@ -47,5 +47,9 @@ class glTF2BaseExporterComponent:
         pass
 
     @abstractmethod
+    def gather_joint_hook(self, node: Any, blender_bone: Any, export_settings: dict):
+        pass
+
+    @abstractmethod
     def gather_gltf_extensions_hook(self, gltf: "Gltf", export_settings: dict):
         pass

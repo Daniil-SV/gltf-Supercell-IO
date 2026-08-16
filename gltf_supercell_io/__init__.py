@@ -1,4 +1,13 @@
 import bpy
+from .importer.patches import flatbuffer_glb, vnodes_compute_patch
+from .exporter.patches import (
+    inverse_bind_matrices_gather,
+    traverse_gather,
+    inline_materials,
+    sampled_armature_keyframes_patch,
+    fcurve_keyframes_patch,
+)
+from .com.utilities.patcher import register_patch, unregister_patch
 from .exporter.ui import glTFSupercellExporterProperties
 from .importer.ui import glTFSupercellImporterProperties, glTFSupercellTextureOverride
 from .com.shader.handler import shader_linkage_handler
@@ -12,13 +21,7 @@ from .exporter.ui import draw_export
 from .exporter import glTF2ExportUserExtension as glTF2ExportUserExtension
 from .importer.ui import draw_import as draw_import
 from .importer import glTF2ImportUserExtension as glTF2ImportUserExtension
-from .importer.patches import flatbuffer_glb, skinned_mesh
-from .com.utilities.patcher import register_patch, unregister_patch
-from .exporter.patches import (
-    inverse_bind_matrices_gather,
-    traverse_gather,
-    inline_materials,
-)
+from io_scene_gltf2.blender.imp import scene as gltf_scene
 from .com.editor.string_array import (
     StringItem,
     DirectoryStringItem,
@@ -75,7 +78,14 @@ classes = [
     IO_FH_scw,
 ]
 
-patches = [flatbuffer_glb, skinned_mesh, inverse_bind_matrices_gather, traverse_gather]
+patches = [
+    flatbuffer_glb,
+    vnodes_compute_patch,
+    inverse_bind_matrices_gather,
+    traverse_gather,
+    sampled_armature_keyframes_patch,
+    fcurve_keyframes_patch,
+]
 patches_5_2_up = [inline_materials]
 
 
@@ -86,6 +96,7 @@ def register():
 
     for patch in patches:
         register_patch(patch)
+    gltf_scene.compute_vnodes = vnodes_compute_patch.function
 
     if major >= 5 and minor >= 2:
         for patch in patches_5_2_up:

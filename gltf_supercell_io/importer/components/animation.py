@@ -73,7 +73,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
             values = vnode.base_scales_to_final_scales(values)
 
         # Objects parented to a bone are translated to the bone tip by default.
-        # Correct for this by translating backwards from the tip to the root.
+        # Correct for this by translating backwards from the tip to the root
         if vnode.type == VNode.Object and path == "translation":
             if vnode.parent is not None and vnodes[vnode.parent].type == VNode.Bone:
                 bone_length = vnodes[vnode.parent].bone_length  # type: ignore
@@ -88,26 +88,62 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
                 blender_path,
             )
 
-            # We have the final TRS of the bone in values. We need to give
-            # the TRS of the pose bone though, which is relative to the edit
-            # bone.
+            # Supercell scale baking adjustments (see importer/patches/vnodes.py).
             #
-            #     Final = EditBone * PoseBone
-            #   where
-            #     Final =    Trans[ft] Rot[fr] Scale[fs]
-            #     EditBone = Trans[et] Rot[er]
-            #     PoseBone = Trans[pt] Rot[pr] Scale[ps]
+            # The bone's rest skeleton was rebuilt by ``bake_pose_scale_into_vnodes``
+            # so that children of scale-bearing ancestors already live in the
+            # ancestor's scaled local frame. Two consequences for animations:
             #
-            # Solving for PoseBone gives
+            #   * ``translation`` values in the SC file are stored relative to the
+            #     parent node's STILL SCALED local frame, so the per-axis factor
+            #     that was baked into this bone's ``editbone_trans`` must also be
+            #     applied to every keyframed translation before comparing against
+            #     ``edit_trans``. At the bind pose ``t_anim == t_orig`` so the
+            #     factor cancels and ``pose_bone.location`` evaluates to zero
             #
-            #     pt = Rot[er^{-1}] (ft - et)
-            #     pr = er^{-1} fr
-            #     ps = fs
+            #   * ``scale`` values in the SC file are the absolute node scale
+            #     (e.g. ``1.84`` at rest). The ``scScaleOverride`` that was moved
+            #     out of the pose is baked into the inverse bind matrices and
+            #     back into the exported node scale via ``common``; reading the
+            #     absolute value into ``pose_bone.scale`` directly would re-introduce
+            #     the rest mesh artifact. Divide by ``scScaleOverride`` so the
+            #     Blender pose scale becomes ``1`` at rest and ``S_anim / S_bind``
+            #     at runtime, which is exactly the correction Blender's skinnning
+            #     needs to match SC renderer
+            trans_factor = Vector(
+                getattr(vnode, "sc_translate_factor", (1.0, 1.0, 1.0))
+            )
+            scale_override = Vector(
+                getattr(vnode, "sc_scale_override", (1.0, 1.0, 1.0))
+            )
+
+            # ``sc_scale_override`` is sanitized during bake (zero entries
+            # are replaced with 1.0), so dividing is always safe
+            def _safe_inverse(v):
+                return (
+                    1.0 / v.x if abs(v.x) > 1e-6 else 1.0,
+                    1.0 / v.y if abs(v.y) > 1e-6 else 1.0,
+                    1.0 / v.z if abs(v.z) > 1e-6 else 1.0,
+                )
 
             if path == "translation":
                 edit_trans, edit_rot = vnode.editbone_trans, vnode.editbone_rot  # type: ignore
                 edit_rot_inv = edit_rot.conjugated()
-                values = [edit_rot_inv @ (trans - edit_trans) for trans in values]
+                fx, fy, fz = trans_factor
+                values = [
+                    edit_rot_inv
+                    @ (
+                        Vector(
+                            (
+                                fx * trans.x,
+                                fy * trans.y,
+                                fz * trans.z,
+                            )
+                        )
+                        - edit_trans
+                    )
+                    for trans in values
+                ]
 
             elif path == "rotation":
                 edit_rot = vnode.editbone_rot  # type: ignore
@@ -115,10 +151,31 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
                 values = [edit_rot_inv @ rot for rot in values]
 
             elif path == "scale":
-                pass  # no change needed
+                # ``base_scales_to_final_scales`` (called above) applies
+                # ``scale_rot_swap_matrix(rotation_before)`` to the scale
+                # values, which permutes the axes. ``sc_scale_override``
+                # was stored in the pre-permutation frame during bake, so
+                # we must permute it the same way before dividing
+                from io_scene_gltf2.blender.com.gltf2_blender_math import (
+                    scale_rot_swap_matrix,
+                )
+
+                swap = scale_rot_swap_matrix(vnode.rotation_before)  # type: ignore
+                swapped_override = swap @ scale_override
+                ix, iy, iz = _safe_inverse(swapped_override)
+                values = [
+                    Vector(
+                        (
+                            s.x * ix,
+                            s.y * iy,
+                            s.z * iz,
+                        )
+                    )
+                    for s in values
+                ]
 
         # To ensure rotations always take the shortest path, we flip
-        # adjacent antipodal quaternions.
+        # adjacent antipodal quaternions
         if path == "rotation":
             for i in range(1, len(values)):
                 if values[i].dot(values[i - 1]) < 0:

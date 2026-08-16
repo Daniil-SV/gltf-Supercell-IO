@@ -60,3 +60,6 @@ class glTF2ExportUserExtension(
 
     def vtree_before_filter_hook(self, vtree, export_settings):
         self("vtree_before_filter_hook", vtree, export_settings)
+
+    def gather_joint_hook(self, node, blender_bone, export_settings):
+        self("gather_joint_hook", node, blender_bone, export_settings)

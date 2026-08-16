@@ -148,6 +148,8 @@ class SkinImporter(glTF2BaseImporterComponent):
 
             def visit(idx: int, accum: int):
                 node = nodes[idx]
+
+                # Handling no-op skin joints
                 if idx in parents:
                     accum += 1
                     inv_binds.append([1.0 if i % 5 == 0 else 0.0 for i in range(16)])
@@ -208,7 +210,7 @@ class SkinImporter(glTF2BaseImporterComponent):
 
     def move_pose_bone_offset(self, bone: bpy.types.PoseBone):
         default_scale = Vector((1.0, 1.0, 1.0))
-        if bone.scale != default_scale and bone.bone.use_deform:
+        if bone.scale != default_scale:
             x, y, z = bone.scale
             bone["scScaleOverride"] = (
                 x if x != 0.0 else 1.0,
@@ -219,19 +221,45 @@ class SkinImporter(glTF2BaseImporterComponent):
 
     def create_pose_bones_properties(self, gltf: "glTFImporter"):
         """
-        This function iterates over created gltf bones and moves pose mode transformation to custom properties
-        This is required for correct displaying in blender and for correct inverse matrices exporting
+        Propagate the verifier data recorded on every bone vnode during
+        ``compute_vnodes`` onto the actual pose bone as custom properties:
+
+          * ``scScaleOverride``     -- the SC file's node scale (used to
+            reconstruct the inverse bind matrices and to restore the
+            exported node scale),
+          * ``scTranslationOverride``/``scRotationOverride`` -- the SC
+            file's original translation/rotation of the joint, used by the
+            exporter to write the node TRS verbatim (bypassing matrix
+            decomposition, which is ambiguous for non-uniform scales such
+            as the ``[1, 1, -1]`` reflections).
+
+        These properties are only written for bones that had a non-trivial
+        node scale in the source file (see ``bake_pose_scale_into_vnodes``).
         """
+
         vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
+        default_scale = (1.0, 1.0, 1.0)
 
         def visit(vnode_id: Any, armature: bpy.types.Object):
             vnode: VNode = vnodes[vnode_id]
 
-            if vnode.type == VNode.Bone:
-                bone_name = vnode.blender_bone_name  # type: ignore
-                if armature.pose and armature.pose.bones[bone_name]:
-                    bone = armature.pose.bones[bone_name]
-                    self.move_pose_bone_offset(bone)
+            if vnode.type == VNode.Bone and armature.pose:
+                override = getattr(vnode, "sc_scale_override", None)
+                tr = getattr(vnode, "sc_tr_override", None)
+                if override is not None and override != default_scale:
+                    bone_name = vnode.blender_bone_name  # type: ignore
+                    pb = armature.pose.bones.get(bone_name)
+                    if pb is not None:
+                        sx, sy, sz = override
+                        pb["scScaleOverride"] = (sx, sy, sz)
+                        if tr is not None:
+                            # tr layout (set in ``bake_pose_scale_into_vnodes``):
+                            #   0..2  translation  (Blender Z-up coords)
+                            #   3..6  rotation     (Blender quaternion
+                            #                       qx, qy, qz, qw order)
+                            #   7..9  scale        (Blender scale)
+                            pb["scTranslationOverride"] = (tr[0], tr[1], tr[2])
+                            pb["scRotationOverride"] = (tr[3], tr[4], tr[5], tr[6])
 
             for children in vnode.children:
                 visit(children, armature)
