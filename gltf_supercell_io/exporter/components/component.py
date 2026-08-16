@@ -9,6 +9,16 @@ if TYPE_CHECKING:
     from io_scene_gltf2.blender.exp.tree import VExportTree
 
 
+def requires_extension(func):
+    def wrapper(*args, **kwargs):
+        cls = args[0]
+        
+        if cls.properties.enabled:
+            func(*args, **kwargs)
+
+    return wrapper
+
+
 class glTF2BaseExporterComponent:
     def __init__(self, **kwargs):
         scene = cast(Any, bpy.context.scene)

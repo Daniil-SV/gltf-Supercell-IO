@@ -1,13 +1,16 @@
-import bpy
-from mathutils import Vector, Matrix
-from .component import glTF2BaseExporterComponent
+from mathutils import Matrix
+from .component import glTF2BaseExporterComponent, requires_extension
 from ...com import glTF_material_extension_name, glTF_extension_name
 from io_scene_gltf2.blender.exp.tree import VExportNode
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from io_scene_gltf2.io.com.gltf2_io import Gltf
 
 
 class CommonExporter(glTF2BaseExporterComponent):
-    def gather_gltf_extensions_hook(self, gltf, export_settings):
+    def gather_extension(self, gltf: "Gltf", export_settings: dict):
         extension = {}
         if not self.properties.legacy_materials:
             materials = export_settings[glTF_material_extension_name]
@@ -20,12 +23,39 @@ class CommonExporter(glTF2BaseExporterComponent):
                 glTF_extension_name, extension, True
             )
 
+    def gather_nodes_extension(self, gltf: "Gltf"):
+        nodes = gltf.nodes or []
+        parent_of = {}
+        for i, node in enumerate(nodes):
+            for child_idx in node.children or []:
+                parent_of[child_idx] = i
+
+        for i, node in enumerate(nodes):
+            if node.extensions is None:
+                node.extensions = {}
+
+            extension = node.extensions.get(glTF_extension_name)
+            if extension is None:
+                extension = {}
+                node.extensions[glTF_extension_name] = extension
+
+            extension["parent"] = parent_of.get(i)
+
+        for node in nodes:
+            node.children = None
+
+    @requires_extension
+    def gather_gltf_extensions_hook(self, gltf, export_settings):
+        self.gather_extension(gltf, export_settings)
+        # self.gather_nodes_extension(gltf)
         gltf.asset.generator += " | Supercell-IO Exporter by DaniilSV"
 
+    @requires_extension
     def pre_export_hook(self, export_settings: dict):
         if not self.properties.legacy_materials:
             export_settings[glTF_material_extension_name] = []
 
+    @requires_extension
     def gather_joint_hook(self, node, blender_bone, export_settings):
         # A subset of Supercell joints carry a non-unit pose scale that the
         # importer moves out of the Blender pose into the
@@ -75,6 +105,7 @@ class CommonExporter(glTF2BaseExporterComponent):
             )
             node.scale = [sx, sy, sz]
 
+    @requires_extension
     def vtree_before_filter_hook(self, vtree, export_settings):
         # Supercell files bake each scale-bearing joint's pose scale into the
         # ``scScaleOverride`` custom property on import (see
