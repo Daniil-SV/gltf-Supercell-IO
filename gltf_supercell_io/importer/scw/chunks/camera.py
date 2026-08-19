@@ -1,5 +1,6 @@
-from . import ScwChunk, BinaryReader
 from dataclasses import dataclass
+
+from . import BinaryReader, ScwChunk
 
 
 @dataclass
@@ -18,5 +19,5 @@ class ScwCamera(ScwChunk):
                 br.read_float(5)
             )
         else:
-            raise Exception("SCW V0 camera does not supported")
+            raise NotImplementedError("SCW v0 camera is not supported") # and probably doesnt exist
             br.read_matrix()

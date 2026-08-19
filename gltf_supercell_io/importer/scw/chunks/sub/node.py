@@ -1,11 +1,12 @@
-from .frame import ScwFrame
-from ..instance import ScwInstance
-from ..instance.geometry_instance import ScwGeometryInstance
-from ..instance.controller_instance import ScwControllerInstance
-from ..instance.camera_instance import ScwCameraInstance
-from .. import ScwChunk, BinaryReader
 from dataclasses import dataclass
 from typing import Optional
+
+from .. import BinaryReader, ScwChunk
+from ..instance import ScwInstance
+from ..instance.camera_instance import ScwCameraInstance
+from ..instance.controller_instance import ScwControllerInstance
+from ..instance.geometry_instance import ScwGeometryInstance
+from .frame import ScwFrame
 
 
 @dataclass
@@ -35,10 +36,8 @@ class ScwNode(ScwChunk):
 
         self.instances = tuple(instances)
 
-        frames_count = br.read_uint16() if version >= 0.25 else br.read_uint32()
+        frames_count = br.read_uint32() if 0.0 <= version <= 0.25 else br.read_uint16()
         if frames_count > 0:
-            flags = br.read_uint8() if version >= 0.25 else 0xFF
+            flags = 0xFF if 0.0 <= version <= 0.25 else br.read_uint8()
 
-            self.frames = br.read_struct(
-                ScwFrame, frames_count, flags=flags
-            )  # TODO: Its way faster to use numpy
+            self.frames = br.read_struct(ScwFrame, frames_count, flags=flags)  # TODO: Its way faster to use numpy

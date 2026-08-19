@@ -1,6 +1,7 @@
-from typing import Optional
-from . import ScwChunk, BinaryReader
 from dataclasses import dataclass
+from typing import Optional
+
+from . import BinaryReader, ScwChunk
 
 
 @dataclass
@@ -18,4 +19,4 @@ class ScwHeader(ScwChunk):
 
         self.reference_file = br.read_str()
         if end_offset > br.pos() and self.version >= 1:
-            br.read_uint8()  # Clipping or smth
+            br.read_bool() # Used in Scene::updateInstanceTransformations

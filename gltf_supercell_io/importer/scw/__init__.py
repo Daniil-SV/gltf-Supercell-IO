@@ -1,45 +1,48 @@
-import bpy
-from ...com.utilities.binary_reader import BinaryReader, Endian
-from ...com.utilities.accessor import MemoryAccessor
-from ..ui import glTFSupercellImporterProperties
-from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-from io_scene_gltf2.io.imp.gltf2_io_gltf import ImportError
-from io_scene_gltf2.io.com.gltf2_io import (
-    Gltf,
-    Node,
-    Mesh,
-    MeshPrimitive,
-    Material,
-    Skin,
-    Animation,
-    AnimationChannel,
-    AnimationSampler,
-    AnimationChannelTarget,
-    Camera,
-    CameraPerspective,
-)
-from .chunks.header import ScwHeader
-from .chunks.geometry import ScwGeometry, ScwWeights
-from .chunks.nodes import ScwNodes, ScwNode
-from .chunks.material import ScwMaterial, Color as ScwColor, Texture as ScwTexture
-from .chunks.instance import ScwInstance
-from .chunks.instance.controller_instance import (
-    ScwGeometryInstance,
-    ScwControllerInstance,
-)
-from .chunks.instance.camera_instance import ScwCameraInstance
-from .chunks.camera import ScwCamera
-from .chunks.sub.attribute import ScwAttribute
-from .chunks.sub.primitive import ScwPrimitive
-from .chunks.sub.joint import ScwJoint
-from os.path import isfile
-from ...com import glTF_material_extension_name
 from copy import copy
 from dataclasses import dataclass
-import numpy as np
-from pathlib import Path
 from math import radians
-from typing import Optional, cast, Any
+from os.path import isfile
+from pathlib import Path
+from typing import Any, Optional, cast
+
+import bpy
+import numpy as np
+from io_scene_gltf2.io.com.gltf2_io import (
+    Animation,
+    AnimationChannel,
+    AnimationChannelTarget,
+    AnimationSampler,
+    Camera,
+    CameraPerspective,
+    Gltf,
+    Material,
+    Mesh,
+    MeshPrimitive,
+    Node,
+    Skin,
+)
+from io_scene_gltf2.io.imp.gltf2_io_gltf import ImportError, glTFImporter
+
+from ...com import glTF_material_extension_name
+from ...com.utilities.accessor import MemoryAccessor
+from ...com.utilities.binary_reader import BinaryReader, Endian
+from ..ui import glTFSupercellImporterProperties
+from .chunks.camera import ScwCamera
+from .chunks.geometry import ScwGeometry, ScwWeights
+from .chunks.header import ScwHeader
+from .chunks.instance import ScwInstance
+from .chunks.instance.camera_instance import ScwCameraInstance
+from .chunks.instance.controller_instance import (
+    ScwControllerInstance,
+    ScwGeometryInstance,
+)
+from .chunks.material import Color as ScwColor
+from .chunks.material import ScwMaterial
+from .chunks.material import Texture as ScwTexture
+from .chunks.nodes import ScwNode, ScwNodes
+from .chunks.sub.attribute import ScwAttribute
+from .chunks.sub.joint import ScwJoint
+from .chunks.sub.primitive import ScwPrimitive
 
 ANIM_CHANNELS = [("translation", 3), ("rotation", 4), ("scale", 3)]
 
@@ -50,16 +53,16 @@ class CachedMeshInstance:
     bindings: tuple[tuple[str, str], ...]
 
 
-def _source_to_gltf_name(name: str):
+def _source_to_gltf_name(name: str, index_set: int):
     match name.casefold():
         case "position" | "vertex":
             return "POSITION"
         case "normal":
             return "NORMAL"
-        case "texcoord":
-            return "TEXCOORD_0"
-        case "color":
-            return "COLOR_0"
+        case "texcoord" | "color":
+            return f"{name.upper()}_{index_set}"
+        case "tangent":
+            return "TANGENT"
         case _:
             raise ImportError(f"Unknown SCW attribute name {name}")
 
@@ -139,7 +142,7 @@ class ScwFile:
             source_indices = unique_keys[order, attribute_index]
             data = source.data[source_indices]
 
-            attribute_name = _source_to_gltf_name(source.name)
+            attribute_name = _source_to_gltf_name(source.name, source.index_set)
             attributes[attribute_name] = self._create_accessor(data)
 
         if weights is not None:
@@ -393,9 +396,8 @@ class ScwFile:
 
             return result
 
-        for idx in range(len(nodes.nodes)):
+        for idx, node in enumerate(nodes.nodes):
             gltf_node = gltf_nodes[idx]
-            node = nodes.nodes[idx]
 
             # Converting parent-based tree to child-based tree
             gltf_node.children = gather_children(cast(str, node.name))
@@ -415,7 +417,7 @@ class ScwFile:
             if len(node.frames) > 1:
                 self._import_node_animation(node, idx)
 
-        self.gltf.data.nodes = gltf_nodes
+        self.gltf.data.nodes.extend(gltf_nodes)
 
     def _create_fallback_material(self, name: str):
         gltf_material = Material(
@@ -524,39 +526,39 @@ class ScwFile:
         while True:
             length = data.read_uint32()
             signature = data.read_bytes(4)
-            expected_end_offset = data.pos() + length
+            end_offset = data.pos() + length
 
             match signature:
                 case b"HEAD":
-                    chunk = data.read_struct(ScwHeader, end_offset=expected_end_offset)
-                    self._import_header(chunk)
+                    scw_object = data.read_struct(ScwHeader, end_offset=end_offset)
+                    self._import_header(scw_object)
 
                 case b"MATE":
-                    chunk = data.read_struct(ScwMaterial, version=self.version)
-                    self._import_material(chunk)
+                    scw_object = data.read_struct(ScwMaterial, version=self.version)
+                    self._import_material(scw_object)
 
                 case b"CAME":
-                    chunk = data.read_struct(ScwCamera, version=self.version)
-                    self._import_camera(chunk)
+                    scw_object = data.read_struct(ScwCamera, version=self.version)
+                    self._import_camera(scw_object)
 
                 case b"GEOM":
-                    chunk = data.read_struct(ScwGeometry, version=self.version)
-                    self._import_mesh(chunk)
+                    scw_object = data.read_struct(ScwGeometry, version=self.version)
+                    self._import_mesh(scw_object)
 
-                case b"NODE":  # TODO: This should extend nodes, not replace
-                    chunk = data.read_struct(ScwNodes, version=self.version)
-                    self._import_nodes(chunk)
+                case b"NODE":
+                    scw_object = data.read_struct(ScwNodes, version=self.version)
+                    self._import_nodes(scw_object)
 
                 case b"WEND":
                     return
 
                 case _:
                     self.gltf.log.warning(
-                        f"Unknown SCW chunk {signature.decode("ascii")}"
+                        f"Unknown SCW object {signature.decode("ascii", errors="ignore")}"
                     )
 
-            if expected_end_offset > data.pos():
-                data.seek(expected_end_offset)
+            if end_offset > data.pos():
+                data.seek(end_offset)
 
             data.read_uint32()  # CRC32 checksum
 

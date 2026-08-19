@@ -38,7 +38,7 @@ class ScwGeometry(ScwChunk):
         br.read_str()  # Group name
 
         if version <= 1:
-            br.seek(16 * 4, Whence.CUR)
+            br.read_matrix()
 
         attributes_count = br.read_uint8()
         self.attributes = br.read_struct(ScwAttribute, attributes_count)
@@ -52,19 +52,17 @@ class ScwGeometry(ScwChunk):
 
         weight_count = br.read_uint32()
         if weight_count > 0:
-            divider = 0xFFFF
             if version >= 0.5:
-                weights_data = br.read_bytes(weight_count * 12)
-                weights = np.frombuffer(
-                    weights_data, ushort_weights_dtype, weight_count
-                )
-                divider = 0xFFFF
+                weights_dtype = ushort_weights_dtype
+                normalize_value = 0xFFFF
             else:
-                weights_data = br.read_bytes(weight_count * 8)
-                weights = np.frombuffer(weights_data, ubyte_weights_dtype, weight_count)
-                divider = 0xFF
-
-            self.weights = ScwWeights(weights["joints"], weights["weights"] / divider)
+                weights_dtype = ubyte_weights_dtype
+                normalize_value = 0xFF
+            
+            weights_data = br.read_bytes(weight_count * weights_dtype.itemsize)
+            weights = np.frombuffer(weights_data, weights_dtype, weight_count)
+            
+            self.weights = ScwWeights(weights["joints"], weights["weights"] / np.float32(normalize_value) )
 
         primitives_count = br.read_uint8()
         self.primitives = br.read_struct(ScwPrimitive, primitives_count)

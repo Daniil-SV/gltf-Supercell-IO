@@ -1,6 +1,8 @@
-from .. import ScwChunk, BinaryReader
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
+
+from .. import BinaryReader, ScwChunk
 from .primitive import dtype_from_size
 
 
@@ -18,13 +20,9 @@ class ScwAttribute(ScwChunk):
         scale = br.read_float()
         count = br.read_uint32()
 
-        self.data = (
-            np.frombuffer(
-                br.read_bytes(count * dimensions * 2),
-                dtype=dtype_from_size(2, unsigned=False),
-            )
-            / 32512
-        )
-
-        self.data *= scale
-        self.data = self.data.reshape((count, dimensions))
+        self.data = np.frombuffer(
+            br.read_bytes(count * dimensions * 2),
+            dtype=dtype_from_size(2, unsigned=False),
+        ).reshape((count, dimensions)).astype(np.float32)
+        
+        self.data *= scale / 32512

@@ -1,7 +1,8 @@
-from . import ScwChunk, BinaryReader, BrStruct
 from dataclasses import dataclass, field
-from typing import Optional, cast
 from enum import IntFlag
+from typing import Optional, cast
+
+from . import BinaryReader, BrStruct, ScwChunk
 
 
 class ShaderDefine(IntFlag):
@@ -112,7 +113,7 @@ class ScwMaterial(ScwChunk):
         self.name = br.read_str() or ""
         self.shader = br.read_str() or ""
         self.blend_mode = br.read_uint8()
-        br.read_uint8()
+        br.read_uint8() # Triangle sorting mode
         self.ambient = br.read_struct(Color)
         self.diffuse = br.read_struct(Texture)
         self.specular = br.read_struct(Texture)
