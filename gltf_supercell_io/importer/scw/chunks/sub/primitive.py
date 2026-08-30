@@ -1,6 +1,8 @@
-from .. import ScwChunk, BinaryReader
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
+
+from .. import BinaryReader, ScwChunk
 
 
 def dtype_from_size(size: int, unsigned=True):
@@ -10,14 +12,10 @@ def dtype_from_size(size: int, unsigned=True):
             return np.dtype(f">{sign}{size}")
         case 2:
             return np.dtype(f">{sign}{size}")
-        case 3:
-            raise Exception(
-                "Got datatype with size `3`, which is unsupported for now"
-            )  # np doesnt really support uint24
         case 4:
             return np.dtype(f">{sign}{size}")
         case _:
-            raise ImportError("Incorrect SCW data size!")
+            raise ImportError("Incorrect dtype size!")
 
 
 @dataclass
@@ -31,12 +29,23 @@ class ScwPrimitive(ScwChunk):
         count = br.read_uint32()
         inputs_count = br.read_uint8()
         size = br.read_uint8()
-
-        size_dtype = dtype_from_size(size)
+        
         elements_count = count * inputs_count * 3
         data_size = elements_count * size
-        array = np.frombuffer(
-            br.read_bytes(data_size), size_dtype, count=elements_count
-        ).reshape((count * 3, inputs_count))
+
+        if size == 3:
+            data = np.frombuffer(br.read_bytes(data_size), ">u1")
+        
+            array = np.empty(elements_count, np.uint32)
+            array[:] = data[:, 0]
+            array <<= 8
+            array |= data[:, 1]
+            array <<= 8
+            array |= data[:, 2]
+        else:
+            array = np.frombuffer(
+                br.read_bytes(data_size), dtype_from_size(size), count=elements_count
+            )
+        array = array.reshape((count * 3, inputs_count))
 
         self.attribute_indices = tuple([array[:, i] for i in range(inputs_count)])
