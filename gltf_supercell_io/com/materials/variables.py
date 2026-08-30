@@ -80,7 +80,7 @@ class ShaderTextureProperty(ShaderProperty):
         if len(self.keywords) == 0:
             return self.path
 
-        return f"{self.path}#{'+'.join(self.keywords)}"
+        return f"{self.path}{''.join([f"#{key}" for key in self.keywords])}"
 
 
 class ShaderBooleanProperty(ShaderProperty):

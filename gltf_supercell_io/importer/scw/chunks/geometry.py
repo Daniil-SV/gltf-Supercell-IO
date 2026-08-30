@@ -53,7 +53,7 @@ class ScwGeometry(ScwChunk):
         weight_count = br.read_uint32()
         if weight_count > 0:
             divider = 0xFFFF
-            if version >= 0.5:
+            if version >= 1:
                 weights_data = br.read_bytes(weight_count * 12)
                 weights = np.frombuffer(
                     weights_data, ushort_weights_dtype, weight_count

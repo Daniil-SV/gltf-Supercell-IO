@@ -149,9 +149,19 @@ class ShaderExporter:
                 (PurePath("sc/") / PurePath(texture.value)).as_posix()
             )
 
-        # Kinda sus, but okay
-        if node.extension != "CLIP":
-            texture.keywords.append(node.extension.lower())
+        # Handling sampling modes for texture
+        if node.extension == "REPEAT":
+            texture.keywords.append("repeat")  # Repeat address mode
+
+        if node.interpolation == "Closest":
+            texture.keywords.append("nearest")
+
+        # Linear by default
+        # if node.interpolation == "Linear":
+        #     texture.keywords.append("linear")
+
+        # Titan engine also supports linear_mipmap_nearest and linear_mipmap_linear
+        # but idk how to implement it in Blender for now
 
         texture_info = texture.value
         if props.legacy_materials:
