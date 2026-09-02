@@ -40,13 +40,14 @@ class MeshExporter(glTF2BaseExporterComponent):
                     count=num_elems,
                 ).reshape(accessor.count, 4)
 
-                primitive.attributes[name] = array_to_accessor(
+                legacy_joints = array_to_accessor(
                     name,
                     array.astype(target_dtype),
                     export_settings,
                     target_type,
                     data_type=accessor.type,
                 )
+                primitive.attributes[name] = legacy_joints
 
     def gather_mesh_hook(
         self,

@@ -24,7 +24,7 @@ def array_to_accessor(
 ):
     major, minor, _ = bpy.app.version
     if major >= 5 and minor >= 2:
-        base_array_to_accessor(
+        return base_array_to_accessor(
             attribute_name,
             array,
             export_settings,
@@ -35,7 +35,7 @@ def array_to_accessor(
             normalized,
         )
     else:
-        base_array_to_accessor(
+        return base_array_to_accessor(
             array,
             export_settings,
             component_type,
