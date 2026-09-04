@@ -59,6 +59,11 @@ class glTFSupercellImporterProperties(PropertyGroup):
             ),
             (str(ShaderPresetType.UNLIT), "Unlit", "Use unlit materials"),
             (
+                str(ShaderPresetType.BRAWL_STARS),
+                "Brawl Stars",
+                "Use modern Brawl Stars shader",
+            ),
+            (
                 str(ShaderPresetType.BRAWL_STARS_LEGACY),
                 "Legacy Brawl Stars",
                 "Use older version of Brawl Stars materials",

@@ -91,8 +91,6 @@ class ShaderImporter(ShaderUtils):
         self.basepath = Path(gltf.import_settings["filepath"]).parent
 
     def import_material(self):
-        self.setup_blending()
-
         self.output: ShaderNodeOutputMaterial = self.tree.nodes.new(  # type: ignore
             "ShaderNodeOutputMaterial"
         )
@@ -125,14 +123,20 @@ class ShaderImporter(ShaderUtils):
         result = []
 
         if self.sc_material.blend_mode == ScBlendMode.SCREEN:
-            result.append(self.setup_modifier("ScMultiplyModifier", "Multiply"))
+            result.append(self.setup_modifier("ScScreenModifier", "Screen"))
 
         if result:
             return (result[0], result[-1])
 
         return None
 
-    def setup_blending(self):
+    def setup_opacity_blending(self, toggle_socket_idx: int, value_socket_idx: int):
+        if value_socket_idx != -1:
+            self.set_float_prop("opacity", value_socket_idx)
+
+        if toggle_socket_idx != -1:
+            self.set_constant_prop("OPACITY", toggle_socket_idx)
+
         if self.sc_material.blend_mode == ScBlendMode.OPAQUE:
             self.material.surface_render_method = "DITHERED"
         else:
@@ -429,9 +433,6 @@ class ShaderImporter(ShaderUtils):
             self.material.node_tree.links.new(node.inputs[0], vector)
 
         valid = self.set_color_prop(name, index)
-        # Trying to set as float
-        if not valid:
-            valid = self.set_float_prop(name, index)
 
         return valid or node is not None
 

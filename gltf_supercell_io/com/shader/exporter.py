@@ -35,9 +35,7 @@ class ShaderExporter:
         self.modifiers = modifiers
         self.export_settings = export_settings
 
-    def set_blend_from_opacity_socket(
-        self, toggle_socket_idx: int, value_socket_idx: int
-    ):
+    def setup_opacity_blending(self, toggle_socket_idx: int, value_socket_idx: int):
         """Set the blend mode based on the opacity socket"""
         value_socket = self.shader.inputs[value_socket_idx]
         toggle_socket = self.shader.inputs[toggle_socket_idx]
@@ -265,10 +263,8 @@ class ShaderExporter:
         return True
 
     def export_modifiers(self):
-        if "ScMultiplyModifier" in self.modifiers:
-            self.sc_material.blend_mode = (
-                ScBlendMode.SCREEN
-            )  # TODO: Rename modifier and add support for the rest of blend modes
+        if "ScScreenModifier" in self.modifiers:
+            self.sc_material.blend_mode = ScBlendMode.SCREEN
 
     def export_material(self):
         """Export the material to dictionary"""

@@ -19,6 +19,10 @@ CONSTANT_MAP = {
     24: "COLORTRANSFORM_MUL",
 }
 
+BOOLEAN_MAP = {29: "enableGlow", 31: "enableGlowDirectional", 33: "enableGlowSpherical"}
+
+FLOAT_MAP = {}
+
 ARRAY_MAP = {1: "ambient", 21: "clipPlane"}
 
 TEXTURE_MAP = {
@@ -29,7 +33,7 @@ TEXTURE_MAP = {
 }
 
 LIGHTMAP_MAP = {
-    10: "lightmap",
+    10: "lightmapDiffuse",
     11: "lightmapSpecular",
 }
 
@@ -39,9 +43,9 @@ STENCIL_ENABLE = 17
 STENCIL_TEXTURE = 18
 
 
-class BrawlStarsLegacyShaderPreset(ShaderPresetDescriptor):
-    shader_idname = "ScLegacyBrawlStarsShader"
-    shader_label = "Brawl Stars Legacy Shader"
+class BrawlStarsShaderPreset(ShaderPresetDescriptor):
+    shader_idname = "ScBrawlStarsShader"
+    shader_label = "Brawl Stars Shader"
 
     @staticmethod
     def setup_props(
@@ -57,14 +61,14 @@ class BrawlStarsLegacyShaderPreset(ShaderPresetDescriptor):
             shader.set_color_prop(key, idx)
 
         for idx, key in TEXTURE_MAP.items():
-            shader.set_surface_color(key, f"{key}Tex2D", idx)
+            shader.set_surface_color(key, f"{key}Tex", idx)
 
         for idx, key in LIGHTMAP_MAP.items():
             shader.set_surface_color(
-                key, f"{key}Tex2D", idx, vector=light_vector, has_color=False
+                key, key, idx, vector=light_vector, has_color=False
             )
 
-        shader.set_surface_color("opacity", "opacityTex2D", OPACITY, defaultValue=1.0)
+        shader.set_surface_color("opacity", "opacityTex", OPACITY, defaultValue=1.0)
         shader.set_bool_prop("enableStencilTex", STENCIL_ENABLE)
         shader.set_texture_prop("stencilTex2D", STENCIL_TEXTURE)
 
@@ -73,8 +77,8 @@ class BrawlStarsLegacyShaderPreset(ShaderPresetDescriptor):
         lighting_node = shader.instantiate_utility("ScLightmapUV", "Lightmaps")
         lighting_vector = lighting_node.outputs[0]
 
-        BrawlStarsLegacyShaderPreset.setup_props(shader, lighting_vector)
+        BrawlStarsShaderPreset.setup_props(shader, lighting_vector)
 
     @staticmethod
     def export_shader(shader: "ShaderExporter"):
-        BrawlStarsLegacyShaderPreset.setup_props(shader)
+        BrawlStarsShaderPreset.setup_props(shader)

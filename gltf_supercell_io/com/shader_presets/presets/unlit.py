@@ -17,24 +17,25 @@ CLIP_PLANE_ENABLED = 4
 CLIP_PLANE = 5
 
 
-class UnlitPreset(ShaderPresetDescriptor):
+class UnlitShaderPreset(ShaderPresetDescriptor):
     shader_idname = "ScUnlitShader"
     shader_label = "Unlit Shader"
 
     @staticmethod  # Need this for IDE to work correctly
     def import_shader(shader: "ShaderImporter"):
-        UnlitPreset.setup_props(shader)
+        UnlitShaderPreset.setup_props(shader)
 
     @staticmethod
     def export_shader(shader: "ShaderExporter"):
-        shader.set_blend_from_opacity_socket(OPACITY_ENABLED, OPACITY)
-        UnlitPreset.setup_props(shader)
+        UnlitShaderPreset.setup_props(shader)
 
     @staticmethod
     def setup_props(shader: "ShaderImporter | ShaderExporter"):
-        UnlitPreset.setup_diffuse(shader)
-        UnlitPreset.setup_opacity(shader)
-        UnlitPreset.setup_clipping(shader)
+        shader.setup_opacity_blending(OPACITY_ENABLED, OPACITY)
+
+        UnlitShaderPreset.setup_diffuse(shader)
+        UnlitShaderPreset.setup_opacity(shader)
+        UnlitShaderPreset.setup_clipping(shader)
 
     @staticmethod
     def setup_diffuse(shader: "ShaderImporter | ShaderExporter"):

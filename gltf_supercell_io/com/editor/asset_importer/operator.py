@@ -159,7 +159,11 @@ class ASSETS_OT_import(bpy.types.Operator):
         )
 
         if props.game == "BS" or props.game == "BSCN":
-            gltf_props.shader_preset = "ScLegacyBrawlStarsShader"
+            version = int(props.version.split(".")[0])
+            if version >= 69:
+                gltf_props.shader_preset = "ScBrawlStarsShader"
+            else:
+                gltf_props.shader_preset = "ScLegacyBrawlStarsShader"
 
         item = cast("AssetBrowserItem", props.assets[props.asset_index])
         bpy.ops.supercell.assets_import_api(  # type: ignore

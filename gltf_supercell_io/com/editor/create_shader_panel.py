@@ -60,6 +60,12 @@ class SHADER_PT_SC_create_shader(Panel):
             unlit.item_id = ShaderPresetType.UNLIT
             unlit.item_type = "shader"
 
+            bs = self.layout.operator(
+                "supercell.create_tree", text="Create Brawl Stars shader"
+            )
+            bs.item_id = ShaderPresetType.BRAWL_STARS
+            bs.item_type = "shader"
+
             bs_legacy = self.layout.operator(
                 "supercell.create_tree", text="Create Brawl Stars Legacy shader"
             )
@@ -85,6 +91,6 @@ class SHADER_PT_SC_create_utilities(Panel):
             multiply = self.layout.operator(
                 "supercell.create_tree", text="Create Multiply Modifier"
             )
-            multiply.item_id = "ScMultiplyModifier"
+            multiply.item_id = "ScScreenModifier"
             multiply.item_type = "utility"
             multiply.item_label = "Multiply"

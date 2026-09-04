@@ -1,15 +1,17 @@
 from enum import StrEnum
-from .presets.brawlStarsLegacy import BrawlStarsLegacy
-from .presets.unlit import UnlitPreset
-from .presets.bsdf import BsdfPreset
+from .presets.brawlStarsLegacy import BrawlStarsLegacyShaderPreset
+from .presets.unlit import UnlitShaderPreset
+from .presets.bsdf import BsdfShaderPreset
+from .presets.brawlStars import BrawlStarsShaderPreset
 from typing import Type
 from .descriptor import ShaderPresetDescriptor
 
 
 class ShaderPresetType(StrEnum):
-    UNLIT = UnlitPreset.shader_idname
-    BRAWL_STARS_LEGACY = BrawlStarsLegacy.shader_idname
-    BSDF = BsdfPreset.shader_idname
+    UNLIT = UnlitShaderPreset.shader_idname
+    BRAWL_STARS_LEGACY = BrawlStarsLegacyShaderPreset.shader_idname
+    BRAWL_STARS = BrawlStarsShaderPreset.shader_idname
+    BSDF = BsdfShaderPreset.shader_idname
 
 
 class ShaderPresets:
@@ -18,13 +20,16 @@ class ShaderPresets:
         preset = None
         match (id):
             case ShaderPresetType.UNLIT:
-                preset = UnlitPreset
+                preset = UnlitShaderPreset
 
             case ShaderPresetType.BRAWL_STARS_LEGACY:
-                preset = BrawlStarsLegacy
+                preset = BrawlStarsLegacyShaderPreset
+
+            case ShaderPresetType.BRAWL_STARS:
+                preset = BrawlStarsShaderPreset
 
             case ShaderPresetType.BSDF:
-                preset = BsdfPreset
+                preset = BsdfShaderPreset
 
             case _:
                 raise NotImplementedError()

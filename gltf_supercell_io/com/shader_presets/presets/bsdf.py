@@ -11,13 +11,14 @@ IOR_LEVEL = 13
 ROUGHNESS = 2
 
 
-class BsdfPreset(ShaderPresetDescriptor):
+class BsdfShaderPreset(ShaderPresetDescriptor):
     shader_label = "Principled BSDF"
     shader_idname = "ShaderNodeBsdfPrincipled"
 
     @staticmethod
     def import_shader(shader: "ShaderImporter"):
         shader.set_surface_color("diffuse", "diffuseTex2D", DIFFUSE_TEX)
+        shader.setup_opacity_blending(-1, OPACITY_TEX)
         shader.set_surface_color(
             "opacity", "opacityTex2D", OPACITY_TEX, defaultValue=1.0
         )
