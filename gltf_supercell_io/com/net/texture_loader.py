@@ -125,9 +125,6 @@ def convert_texture(name: str) -> bytes | None:
     props = cast(
         "AssetBrowserProperties", cast(Any, bpy.context.scene).sc_asset_browser
     )
-    if not props.currently_importing:
-        return None
-
     return _convert_texture_cached(name, props.game, props.version)
 
 

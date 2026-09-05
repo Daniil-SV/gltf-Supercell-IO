@@ -1,7 +1,7 @@
 import bpy
 from mathutils import Matrix, Vector
 
-from ...com.utilities.compatibility import gather_accessor
+from io_scene_gltf2.blender.exp.accessors import gather_accessor
 from io_scene_gltf2.io.exp.binary_data import BinaryData
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
 from ...com.utilities.patcher import Patch
@@ -81,6 +81,7 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
         None,
         None,
         DataType.Mat4,  # type: ignore
+        None,
         export_settings,
     )
 

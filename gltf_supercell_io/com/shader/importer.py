@@ -208,26 +208,34 @@ class ShaderImporter(ShaderUtils):
             lookups += [string.value for string in prefs.texture_lookup]
 
         for extension in IMAGE_EXTENSIONS:
-            paths: list[Path] = []
-            for lookup in lookups:
+            paths: list[tuple[Path, bool]] = []
+            for i, lookup in enumerate(lookups):
+                use_network = i == 0
                 paths += [
                     # Tweak for brawl stars, trying to use highres textures preferably
-                    Path(lookup)
-                    / path.parent
-                    / "background"
-                    / Path(path.stem)
-                    .with_name(path.stem + "_highres")
-                    .with_suffix(extension),  # Default
-                    Path(lookup)
-                    / Path(path.stem + "_highres").with_suffix(extension),  # Stem
+                    (
+                        Path(lookup)
+                        / path.parent
+                        / "background"
+                        / Path(path.stem)
+                        .with_name(path.stem + "_highres")
+                        .with_suffix(extension),
+                        False,
+                    ),
+                    # Default
+                    (
+                        Path(lookup)
+                        / Path(path.stem + "_highres").with_suffix(extension),
+                        use_network,
+                    ),
                     # Default path
-                    Path(lookup) / path.with_suffix(extension),
+                    (Path(lookup) / path.with_suffix(extension), use_network),
                     # Using path stem
-                    Path(lookup) / Path(path.stem).with_suffix(extension),
+                    (Path(lookup) / Path(path.stem).with_suffix(extension), False),
                 ]
 
             # Decoding existing on user device textures
-            for maybe_path in paths:
+            for maybe_path, use_network in paths:
                 if not exists(maybe_path):
                     continue
 
@@ -242,7 +250,7 @@ class ShaderImporter(ShaderUtils):
                         return data
 
                 # Converting user texture using neko api
-                if extension in SUPPORTED_NEKO_EXTENSIONS:
+                if extension in SUPPORTED_NEKO_EXTENSIONS and use_network:
                     with open(maybe_path, "rb") as file:
                         data = texture_loader.convert_user_texture(
                             str(path), file.read()
@@ -256,7 +264,7 @@ class ShaderImporter(ShaderUtils):
             # Using just NATIVE_IMAGE_EXTENSIONS creates a lot of
             # network requests just to guess texture name
             if extension in NATIVE_TITAN_IMAGE_EXTENSION:
-                for maybe_path in paths:
+                for maybe_path, use_network in paths:
                     # Check if blender can load texture with that extension
                     # Or image converter can decode it locally
                     if (
@@ -265,7 +273,12 @@ class ShaderImporter(ShaderUtils):
                     ):
                         continue
 
-                    result = texture_loader.download_raw_texture(maybe_path.as_posix())
+                    result = None
+                    if use_network:
+                        result = texture_loader.download_raw_texture(
+                            maybe_path.as_posix()
+                        )
+
                     if result is None:
                         continue
 
@@ -280,9 +293,11 @@ class ShaderImporter(ShaderUtils):
                         return self.load_texture_from_image(str(path), data)
 
             # Trying to decode textures using neko api and its asset database
-            # Works only for asset browser
             if extension in SUPPORTED_NEKO_EXTENSIONS:
-                for maybe_path in paths:
+                for maybe_path, use_network in paths:
+                    if not use_network:
+                        continue
+
                     data = texture_loader.convert_texture(str(maybe_path.as_posix()))
                     if data:
                         return self.load_texture_from_image(str(path), data)

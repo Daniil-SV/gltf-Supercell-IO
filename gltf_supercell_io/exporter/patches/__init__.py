@@ -5,6 +5,8 @@ from .animation_keyframes import (
     sampled_armature_keyframes_patch,
     fcurve_keyframes_patch,
 )
+from .accessor import primitive_gather_attribute
+from .flat import flat_glb_output
 
 __all__ = [
     "inverse_bind_matrices_gather",
@@ -12,4 +14,6 @@ __all__ = [
     "inline_materials",
     "sampled_armature_keyframes_patch",
     "fcurve_keyframes_patch",
+    "primitive_gather_attribute",
+    "flat_glb_output"
 ]

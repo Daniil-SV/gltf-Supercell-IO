@@ -63,3 +63,18 @@ class glTF2ExportUserExtension(
 
     def gather_joint_hook(self, node, blender_bone, export_settings):
         self("gather_joint_hook", node, blender_bone, export_settings)
+
+    def gather_attribute_change(
+        self,
+        attribute: str,
+        data,
+        is_normalized_byte_color: bool,
+        export_settings: dict,
+    ):
+        self(
+            "gather_attribute_change",
+            attribute,
+            data,
+            is_normalized_byte_color,
+            export_settings,
+        )

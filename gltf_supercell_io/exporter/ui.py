@@ -14,7 +14,7 @@ class glTFSupercellExporterProperties(PropertyGroup):
     use_odin: BoolProperty(
         name="Odin optimizations",
         description="Use Odin optimizations for meshes and animations",
-        default=False,
+        default=True,
     )
 
     path_prefix: StringProperty(
@@ -35,6 +35,11 @@ class glTFSupercellExporterProperties(PropertyGroup):
         default=True,
     )
 
+    debug_output: BoolProperty(
+        name="Debug",
+        default=True,
+    )
+
 
 def draw_export(context: bpy.context, layout: bpy.types.UILayout):
     if bpy.context.scene is None:
@@ -46,13 +51,11 @@ def draw_export(context: bpy.context, layout: bpy.types.UILayout):
     header.use_property_split = False
     header.prop(props, "enabled")
     if body:
-        # TODO: implement odin extension and return back this option
-        # For now always export materials in legacy format
         body.prop(props, "path_prefix")
-        # body.prop(props, "use_odin")
+        body.prop(props, "use_odin")
+        body.prop(props, "debug_output")
 
-    # if (body and not props.use_odin):
-    if body:
+    if body and not props.use_odin:
         legacy_header, legacy_body = body.panel("Legacy", default_closed=True)
         legacy_header.label(text="Legacy")
         if legacy_body:

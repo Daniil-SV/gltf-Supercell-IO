@@ -1,6 +1,7 @@
 import bpy
 from typing import TYPE_CHECKING, cast, Any
 from abc import abstractmethod
+import numpy as np
 
 if TYPE_CHECKING:
     from ..ui import glTFSupercellExporterProperties
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 def requires_extension(func):
     def wrapper(*args, **kwargs):
         cls = args[0]
-        
+
         if cls.properties.enabled:
             func(*args, **kwargs)
 
@@ -25,6 +26,7 @@ class glTF2BaseExporterComponent:
         self.properties: glTFSupercellExporterProperties = (
             scene.glTFSupercellExporterProperties
         )
+        self.buffers: list[np.ndarray] = []
 
     @abstractmethod
     def pre_export_hook(self, export_settings: dict):
@@ -62,4 +64,14 @@ class glTF2BaseExporterComponent:
 
     @abstractmethod
     def gather_gltf_extensions_hook(self, gltf: "Gltf", export_settings: dict):
+        pass
+
+    @abstractmethod
+    def gather_attribute_change(
+        self,
+        attribute: str,
+        data,
+        is_normalized_byte_color: bool,
+        export_settings: dict,
+    ):
         pass

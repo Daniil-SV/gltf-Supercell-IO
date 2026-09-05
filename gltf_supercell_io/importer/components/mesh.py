@@ -1,7 +1,8 @@
+import numpy as np
 from typing import List, TYPE_CHECKING
 from .component import glTF2BaseImporterComponent, requires_extension
 from ...com.odin.constants import OdinAttributeFormat, OdinAttributeType
-from ...com.odin.attribute import OdinAttribute
+from ...com.odin.attribute import OdinAttributeReader
 from ...com import glTF_extension_name
 
 from io_scene_gltf2.io.imp.gltf2_io_gltf import ImportError
@@ -22,14 +23,14 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         offset: int,
         stride: int,
     ):
-        attribute_type = OdinAttributeType(attribute.get("index"))
+        attribute_type = OdinAttributeType(attribute.get("name"))
         attribute_format = OdinAttributeFormat(attribute.get("format"))
         element_offset = attribute.get("offset", 0)
-        buffer_data = BinaryData.get_buffer_view(gltf, buffer_idx)
+        buffer_data: memoryview | None = BinaryData.get_buffer_view(gltf, buffer_idx)
 
         name = OdinAttributeType.to_attribute_name(attribute_type)
-        data = OdinAttribute(
-            buffer_data,
+        data = OdinAttributeReader(
+            np.asarray(buffer_data),
             attribute_format,
             attribute_type,
             offset,

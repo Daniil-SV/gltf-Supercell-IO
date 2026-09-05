@@ -34,6 +34,9 @@ class ScShaderMaterial:
         # Name of material shader
         self.shader_name = ""
 
+        # Is material is double side rendered
+        self.double_sided = False
+
         self._used_variables = set()
         self._used_constants = set()
 
@@ -99,6 +102,7 @@ class ScShaderMaterial:
         return {
             "blendMode": int(self.blend_mode),
             "constants": self._constants,
+            "doubleSided": self.double_sided,
             "name": self.name,
             "shader": self.shader_name or "uber",
             "variables": self._variables.to_typed_dict(),

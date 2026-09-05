@@ -1,9 +1,38 @@
 from .constants import OdinAttributeFormat as Format
 from .constants import OdinAttributeType as Type
+from dataclasses import dataclass, field
+from io_scene_gltf2.io.com.constants import ComponentType
 import numpy as np
 
 
-class OdinAttribute:
+@dataclass
+class OdinRawVertexAttribute:
+    data: np.ndarray
+    data_type: str  # DataType
+    component_type: ComponentType
+
+
+@dataclass
+class OdinVertexAttribute:
+    format: Format
+    index: int
+    name: Type
+    offset: int
+
+
+@dataclass
+class OdinVertexDescriptor:
+    attributes: list[OdinVertexAttribute] = field(default_factory=list)
+    offset: int = 0
+    stride: int = 0
+
+
+@dataclass
+class OdinMeshDataInfo:
+    vertexDescriptors: list[OdinVertexDescriptor] = field(default_factory=list)
+
+
+class OdinAttributeReader:
     def __init__(
         self,
         buffer: np.ndarray,
@@ -22,30 +51,33 @@ class OdinAttribute:
         self.type = type
         self.dtype = Format.to_numpy_dtype(self.format)
         self.elements_count = Format.to_element_count(self.format)
-        self.normalized = Type.is_normalized(self.type)
+        self.normalized = Format.is_normalized(self.format)
         self.data = buffer
 
     def read(self, offset: int) -> np.ndarray:
-        match (self.format):
-            case Format.NormalizedWeightVector:
-                value = np.frombuffer(
-                    self.data, dtype=np.uint32, offset=offset, count=1
-                )[0]
-                x = (value >> 21) * 0.0002442
-                y = ((value >> 10) & 0x7FF) * 0.0002442
-                z = (value & 0x3FF) * 0.0002442
-                array = np.array([((1.0 - x) - y) - z, x, y, z], dtype=self.dtype)
-            case _:
-                array = np.frombuffer(
-                    self.data,
-                    dtype=self.dtype,
-                    offset=offset,
-                    count=self.elements_count,
-                )
+        if self.type == Type.a_boneweights and self.format == Format.UInt:
+            value = np.frombuffer(self.data, dtype=np.uint32, offset=offset, count=1)[0]
+            x = (value >> 21) * 0.0002442
+            y = ((value >> 10) & 0x7FF) * 0.0002442
+            z = (value & 0x3FF) * 0.0002442
+            array = np.array([((1.0 - x) - y) - z, x, y, z], dtype=self.dtype)
+        else:
+            array = np.frombuffer(
+                self.data,
+                dtype=self.dtype,
+                offset=offset,
+                count=self.elements_count,
+            )
 
         if self.normalized and np.issubdtype(self.dtype, np.integer):
-            info = np.iinfo(self.dtype)
+            info = np.iinfo(array.dtype.name)
             array = array.astype(np.float32) / info.max
+
+        # Small fixup for normal attributes
+        # Often it present as Vec4 attribute
+        # which cause gltf importer to crash
+        if self.type == Type.a_normal:
+            return array[:3]
 
         return array
 

@@ -1,11 +1,11 @@
 import bpy
 
-from .component import glTF2BaseExporterComponent
+from .component import glTF2BaseExporterComponent, requires_extension
 
 from ...com.utilities.shader import ShaderUtils
 from ...com.shader.nodes import ShaderNodeScShader, ShaderNodeScUtility
 from ...com.shader.exporter import ShaderExporter
-from ...com import glTF_material_extension_name
+from ...com import glTF_material_extension_name, glTF_extension_name
 
 from io_scene_gltf2.blender.exp.material.search_node_tree import get_material_nodes
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
@@ -83,10 +83,13 @@ class MaterialExporter(glTF2BaseExporterComponent):
         export_settings: dict,
     ):
         exporter = ShaderExporter(shader, material, modifiers, export_settings)
-        material_data = exporter.export_material()
+        material_data = exporter.export_material(
+            not self.properties.use_odin and self.properties.legacy_materials
+        )
 
-        return Extension(glTF_material_extension_name, material_data, False)
+        return material_data
 
+    @requires_extension
     def gather_material_hook(
         self,
         gltf2_material,
@@ -111,17 +114,17 @@ class MaterialExporter(glTF2BaseExporterComponent):
 
             break
 
-        if self.properties.legacy_materials:
+        # Do nothing if material doesn't use sc material
+        if material is None:
+            return
+
+        if not self.properties.use_odin and self.properties.legacy_materials:
             # Append as material extension in legacy format
-            if material is None:
-                return
-
-            gltf2_material.extensions[glTF_material_extension_name] = material
+            gltf2_material.extensions[glTF_material_extension_name] = Extension(
+                glTF_material_extension_name, material, False
+            )
         else:
-            # Append to export settings for future use in separate extension
-            # Also, in new format all materials should use sc materials
-            # so create fallback one if material doesn't use sc material
-            if material is None:
-                pass  # TODO: fallback material
-
-            export_settings[glTF_material_extension_name].append(material)
+            # Append as odin material so we can pick up later in primitive processing hook
+            gltf2_material.extensions[glTF_extension_name] = Extension(
+                glTF_extension_name, material, False
+            )

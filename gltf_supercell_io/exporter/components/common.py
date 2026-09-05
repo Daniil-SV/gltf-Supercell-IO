@@ -3,6 +3,7 @@ from .component import glTF2BaseExporterComponent, requires_extension
 from ...com import glTF_material_extension_name, glTF_extension_name
 from io_scene_gltf2.blender.exp.tree import VExportNode
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+from io_scene_gltf2.io.exp.binary_data import BinaryData
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -44,10 +45,29 @@ class CommonExporter(glTF2BaseExporterComponent):
         for node in nodes:
             node.children = None
 
+    def gather_odin_extension(self, gltf: "Gltf"):
+        if gltf.extensions is None:
+            gltf.extensions = {}
+
+        extension: dict = gltf.extensions.get(glTF_extension_name, {})
+        extension["bufferView"] = BinaryData(
+            b"".join([arr.tobytes() for arr in self.buffers])
+        )
+
+        # TODO: animation
+
+        gltf.extensions[glTF_extension_name] = Extension(
+            glTF_extension_name, extension, True
+        )
+
     @requires_extension
     def gather_gltf_extensions_hook(self, gltf, export_settings):
         self.gather_extension(gltf, export_settings)
-        # self.gather_nodes_extension(gltf)
+
+        if self.properties.use_odin:
+            self.gather_nodes_extension(gltf)
+            self.gather_odin_extension(gltf)
+
         gltf.asset.generator += " | Supercell-IO Exporter by DaniilSV"
 
     @requires_extension

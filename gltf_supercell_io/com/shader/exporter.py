@@ -20,7 +20,6 @@ from typing import Any
 
 
 class ShaderExporter:
-
     def __init__(
         self,
         shader: ShaderNodeScShader,
@@ -162,7 +161,7 @@ class ShaderExporter:
         # but idk how to implement it in Blender for now
 
         texture_info = texture.value
-        if props.legacy_materials:
+        if not props.use_odin and props.legacy_materials:
             sampler = ShaderExporter.create_legacy_sampler(
                 node.extension, node.interpolation, self.export_settings
             )
@@ -266,9 +265,9 @@ class ShaderExporter:
         if "ScScreenModifier" in self.modifiers:
             self.sc_material.blend_mode = ScBlendMode.SCREEN
 
-    def export_material(self):
+    def export_material(self, legacy=False) -> dict:
         """Export the material to dictionary"""
-        props = bpy.context.scene.glTFSupercellExporterProperties  # type: ignore
+
         self.sc_material.name = self.material.name
 
         # Export preset variables first
@@ -296,8 +295,7 @@ class ShaderExporter:
 
             self.set_custom_property(key, self.shader[key])
 
-        return (
-            self.sc_material.to_dict()
-            if props.legacy_materials
-            else self.sc_material.to_typed_dict()
-        )
+        if legacy:
+            return self.sc_material.to_dict()
+
+        return self.sc_material.to_typed_dict()

@@ -6,6 +6,8 @@ from .exporter.patches import (
     inline_materials,
     sampled_armature_keyframes_patch,
     fcurve_keyframes_patch,
+    primitive_gather_attribute,
+    flat_glb_output,
 )
 from .com.utilities.patcher import register_patch, unregister_patch
 from .exporter.ui import glTFSupercellExporterProperties
@@ -85,6 +87,8 @@ patches = [
     traverse_gather,
     sampled_armature_keyframes_patch,
     fcurve_keyframes_patch,
+    primitive_gather_attribute,
+    flat_glb_output,
 ]
 patches_5_2_up = [inline_materials]
 
