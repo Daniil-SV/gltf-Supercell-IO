@@ -78,3 +78,29 @@ class glTF2ExportUserExtension(
             is_normalized_byte_color,
             export_settings,
         )
+
+    def gather_skin_hook(
+        self,
+        gltf2_skin,
+        blender_object,
+        export_settings,
+    ):
+        self(
+            "gather_skin_hook",
+            gltf2_skin,
+            blender_object,
+            export_settings,
+        )
+
+    def gather_node_hook(
+        self,
+        gltf2_node,
+        blender_object,
+        export_settings,
+    ):
+        self(
+            "gather_node_hook",
+            gltf2_node,
+            blender_object,
+            export_settings,
+        )

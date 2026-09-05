@@ -4,6 +4,7 @@ import numpy as np
 from typing import TYPE_CHECKING
 from ...com import glTF_extension_name
 from ...com.odin.constants import OdinAttributeType, OdinAttributeFormat
+from ...com.odin.bounding_box import BoundingBox
 from ...com.odin.attribute import (
     OdinRawVertexAttribute,
     OdinVertexAttribute,
@@ -32,6 +33,11 @@ class MeshExporter(glTF2BaseExporterComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.buffer_offset = 0
+
+        # Quick access map with joints indices for joints bound calculation
+        self.skinned_streams: dict[
+            int, dict[OdinAttributeType, OdinRawVertexAttribute]
+        ] = {}
 
     def create_odin_material_fallback(self):
         fallback = ScShaderMaterial()
@@ -81,19 +87,10 @@ class MeshExporter(glTF2BaseExporterComponent):
                 )
                 primitive.attributes[name] = legacy_joints
 
-    def create_odin_descriptor_struct(
-        self, primitives: dict[OdinAttributeType, OdinRawVertexAttribute]
-    ):
-        result = []
-
-        for id_type, attribute in primitives.items():
-            pass
-            # result.append(
-            #     (id_type.name, OdinAttributeType.)
-            # )
-
     def create_odin_stream_groups(
-        self, primitives: list[tuple[OdinVertexAttribute, OdinRawVertexAttribute]]
+        self,
+        primitive: "MeshPrimitive",
+        primitives: list[tuple[OdinVertexAttribute, OdinRawVertexAttribute]],
     ) -> list[list[tuple[OdinVertexAttribute, OdinRawVertexAttribute]]]:
         added_attributes: set[OdinAttributeType] = set()
         groups = []
@@ -113,6 +110,10 @@ class MeshExporter(glTF2BaseExporterComponent):
                 for desc, attribute in primitives
                 if desc.name in SKINNING_STREAM
             ]
+
+            self.skinned_streams[id(primitive)] = {
+                attribute.name: buffer for attribute, buffer in skinned_primitives
+            }
 
             if len(skinned_primitives) != 0:
                 groups.append(skinned_primitives)
@@ -237,16 +238,19 @@ class MeshExporter(glTF2BaseExporterComponent):
             [attribute for attribute, _ in attributes]
         )
         vertex_count = min([buffer.data.shape[0] for _, buffer in attributes])
-        data = np.zeros((vertex_count,), dtype=layout)
+        data: np.ndarray[tuple[int], np.dtype[np.void]] = np.zeros(
+            (vertex_count,), dtype=layout
+        )
         for attribute, buffer in attributes:
             self.write_odin_buffer(vertex_count, attribute, buffer, data)
 
         offset = self.buffer_offset
         self.buffer_offset += data.nbytes
         self.buffers.append(data)
+
         return offset, stride
 
-    def create_odin_primitive(self, primitive: "MeshPrimitive"):
+    def create_odin_primitive(self, primitive: "MeshPrimitive", mesh_bbox: BoundingBox):
         info = OdinMeshDataInfo()
         attribute_mapping: dict[OdinAttributeType, OdinRawVertexAttribute] = {}
 
@@ -266,7 +270,13 @@ class MeshExporter(glTF2BaseExporterComponent):
             descriptor = OdinVertexAttribute(attribute_format, i, id_type, 0)
             odin_attributes.append((descriptor, attribute))
 
-        groups = self.create_odin_stream_groups(odin_attributes)
+            # Handle mesh bbox
+            if id_type == OdinAttributeType.a_pos:
+                bbox = BoundingBox()
+                bbox.extend(attribute.data)
+                mesh_bbox.union(bbox)
+
+        groups = self.create_odin_stream_groups(primitive, odin_attributes)
         if len(groups) == 0:
             return None
 
@@ -279,6 +289,53 @@ class MeshExporter(glTF2BaseExporterComponent):
             )
 
         return info
+
+    def gather_mesh_primitive(
+        self,
+        mesh: "Mesh",
+        primitive: "MeshPrimitive",
+        idx: int,
+        mesh_bbox: BoundingBox,
+        export_settings: dict,
+    ):
+        info = self.create_odin_primitive(primitive, mesh_bbox)
+        if info is None:
+            return
+
+        # Handling material reference
+        material_data: dict | None = None
+        if primitive.material is not None:
+            material = primitive.material
+            if (
+                material.extensions is not None
+                and glTF_extension_name in material.extensions
+            ):
+                # Pick up converted material in material hook
+                material_data = material.extensions[glTF_extension_name]
+
+        # Odin primitive is mandatory to have material
+        if primitive.material is None or material_data is None:
+            material_data = self.create_odin_material_fallback()
+            export_settings["log"].warning(
+                f"{mesh.name} mesh primitive by index {idx} doesn't have proper odin material! Using generated fallback material..."
+            )
+
+        primitive.material = ChildOfRootExtension(
+            ["materials"], glTF_extension_name, material_data, True
+        )
+
+        # Handling mesh reference
+        root_extension = ChildOfRootExtension(
+            ["meshDataInfos"], glTF_extension_name, asdict(info), True
+        )
+
+        info_descriptor = {"meshDataInfoIndex": root_extension}
+        if primitive.extensions is None:
+            primitive.extensions = {}
+
+        primitive.extensions[glTF_extension_name] = Extension(
+            glTF_extension_name, info_descriptor, True
+        )
 
     @requires_extension
     def gather_mesh_hook(
@@ -298,43 +355,111 @@ class MeshExporter(glTF2BaseExporterComponent):
         if len(gltf2_mesh.primitives) == 0:
             return
 
+        bbox = BoundingBox()
+        skinned_mask = 0
         for i, primitive in enumerate(gltf2_mesh.primitives):
-            info = self.create_odin_primitive(primitive)
-            if info is None:
+            skinned_primitive = (
+                OdinAttributeType.a_boneindex in primitive.attributes
+                and OdinAttributeType.a_boneweights in primitive.attributes
+            )
+
+            if skinned_primitive:
+                skinned_mask |= 1 << i
+
+            self.gather_mesh_primitive(gltf2_mesh, primitive, i, bbox, export_settings)
+
+        gltf2_mesh.name = None
+        if gltf2_mesh.extensions is None:
+            gltf2_mesh.extensions = {}
+
+        mesh_extension = {
+            "bounds": bbox.as_list(),
+            "skinnedSubMeshMask": [
+                skinned_mask & 0xFFFFFFFF,
+                (skinned_mask >> 32) & 0xFFFFFFFF,
+            ],
+        }
+        gltf2_mesh.extensions[glTF_extension_name] = Extension(
+            glTF_extension_name, mesh_extension, True
+        )
+
+    @requires_extension
+    def gather_skin_hook(
+        self,
+        gltf2_skin,
+        blender_object,
+        export_settings,
+    ):
+        if not self.properties.use_odin:
+            return
+
+        if gltf2_skin.extensions is None:
+            gltf2_skin.extensions = {}
+
+        # Prepare bounding box accessor for each joint
+        gltf2_skin.extensions[glTF_extension_name] = Extension(
+            glTF_extension_name,
+            {"bounds": [BoundingBox() for _ in gltf2_skin.joints]},
+            True,
+        )
+
+    @requires_extension
+    def gather_node_hook(
+        self,
+        gltf2_node,
+        blender_object,
+        export_settings,
+    ):
+        if gltf2_node.mesh is None or gltf2_node.skin is None:
+            return
+
+        if not self.properties.use_odin:
+            return
+
+        # Calculating skin joints bound
+        mesh = gltf2_node.mesh
+        skin = gltf2_node.skin
+        bounds = skin.extensions[glTF_extension_name].extension["bounds"]
+
+        for primitive in mesh.primitives:
+            attributes = self.skinned_streams.get(id(primitive))
+            if attributes is None:
                 continue
 
-            # Handling material reference
-            material_data: dict | None = None
-            if primitive.material is not None:
-                material = primitive.material
-                if (
-                    material.extensions is not None
-                    and glTF_extension_name in material.extensions
-                ):
-                    # Pick up converted material in material hook
-                    material_data = material.extensions[glTF_extension_name]
+            vertices = attributes[OdinAttributeType.a_pos]
+            indices = attributes[OdinAttributeType.a_boneindex]
+            weights = attributes[OdinAttributeType.a_boneweights]
 
-            # Odin primitive is mandatory to have material
-            if primitive.material is None or material_data is None:
-                material_data = self.create_odin_material_fallback()
-                export_settings["log"].warning(
-                    f"{gltf2_mesh.name} mesh primitive by index {i} doesn't have proper odin material! Using generated fallback material..."
-                )
+            vertex_count = min([buffer.data.shape[0] for buffer in attributes.values()])
 
-            primitive.material = ChildOfRootExtension(
-                ["materials"], glTF_extension_name, material_data, True
-            )
+            for i in range(len(skin.joints)):
+                bound: BoundingBox = bounds[i]
+                for vtx in range(vertex_count):
+                    bone_indices: np.ndarray = indices.data[vtx]
 
-            # Handling mesh reference
-            root_extension = ChildOfRootExtension(
-                ["meshDataInfos"], glTF_extension_name, asdict(info), True
-            )
+                    joint_indices = np.where(bone_indices == i)
+                    if len(joint_indices) == 0 or len(joint_indices[0]) == 0:
+                        continue
 
-            info_descriptor = {"meshDataInfoIndex": root_extension}
-            if primitive.extensions is None:
-                primitive.extensions = {}
+                    joint_index = joint_indices[0][0]
 
-            gltf2_mesh.name = None
-            primitive.extensions[glTF_extension_name] = Extension(
-                glTF_extension_name, info_descriptor, True
-            )
+                    vertex_weight = weights.data[vtx]
+                    weight = vertex_weight[joint_index]
+                    if 0.0 >= weight:
+                        continue
+
+                    vertex = vertices.data[vtx]
+                    bound.union_point(vertex, vertex)
+
+    @requires_extension
+    def gather_gltf_extensions_hook(self, gltf, export_settings):
+        if not self.properties.use_odin:
+            return
+
+        # Serialize bounds for skins
+        for skin in gltf.skins or []:
+            bounds: list[BoundingBox] = skin.extensions[glTF_extension_name]["bounds"]
+            skin.extensions[glTF_extension_name]["bounds"] = [
+                bound.as_flat_list() 
+                for bound in bounds
+            ]

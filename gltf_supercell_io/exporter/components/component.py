@@ -5,8 +5,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from ..ui import glTFSupercellExporterProperties
-    from io_scene_gltf2.io.com.gltf2_io import Gltf
-    from io_scene_gltf2.io.com.gltf2_io import Material, Mesh
+    from io_scene_gltf2.io.com.gltf2_io import Gltf, Material, Mesh, Skin, Node
     from io_scene_gltf2.blender.exp.tree import VExportTree
 
 
@@ -72,6 +71,24 @@ class glTF2BaseExporterComponent:
         attribute: str,
         data,
         is_normalized_byte_color: bool,
+        export_settings: dict,
+    ):
+        pass
+
+    @abstractmethod
+    def gather_skin_hook(
+        self,
+        gltf2_skin: "Skin",
+        blender_object: bpy.types.Object,
+        export_settings: dict,
+    ):
+        pass
+
+    @abstractmethod
+    def gather_node_hook(
+        self,
+        gltf2_node: "Node",
+        blender_object: bpy.types.Object,
         export_settings: dict,
     ):
         pass
