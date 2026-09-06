@@ -3,7 +3,7 @@ import numpy as np
 from ...com.utilities.patcher import Patch
 from io_scene_gltf2.blender.exp.primitive_attributes import __gather_attribute
 from ...com.odin.attribute import OdinRawVertexAttribute
-from ...com.odin.constants import OdinAttributeType
+from ...com.odin.constants import OdinAttributeType, OdinAttributeFormat
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
 from typing import TYPE_CHECKING
 
@@ -228,16 +228,18 @@ def gather_skins(blender_primitive, export_settings):
         where=weight_total != 0,
     )
 
-    attributes[weight_odin_id] = OdinRawVertexAttribute(
-        weights,
-        DataType.Vec4,
-        ComponentType.Float,
-    )
-
     attributes[joint_odin_id] = OdinRawVertexAttribute(
         joints,
         DataType.Vec4,
         component_type,
+        OdinAttributeFormat.from_components(DataType.Vec4, component_type),
+    )
+
+    attributes[weight_odin_id] = OdinRawVertexAttribute(
+        weights,
+        DataType.Vec4,
+        ComponentType.Float,
+        OdinAttributeFormat.from_components(DataType.Vec4, ComponentType.Float),
     )
 
     return attributes
@@ -267,6 +269,9 @@ def gather_primitive_attributes(blender_primitive, export_settings: dict):
                     attribute["data"],
                     attribute["data_type"],
                     attribute["component_type"],
+                    OdinAttributeFormat.from_components(
+                        attribute["data_type"], attribute["component_type"]
+                    ),
                 )
         else:
             attributes.update(

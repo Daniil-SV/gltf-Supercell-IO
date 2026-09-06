@@ -1,6 +1,6 @@
 from enum import IntEnum, StrEnum, auto
 import numpy as np
-
+from io_scene_gltf2.io.com.constants import ComponentType
 
 class OdinAttributeType(StrEnum):
     a_pos = auto()
@@ -19,6 +19,27 @@ class OdinAttributeType(StrEnum):
     a_binormal = auto()
     a_skinningOffsets = auto()
     a_color1 = auto()
+
+    @classmethod
+    def to_index(cls, component_type: "OdinAttributeType") -> int:
+        return {
+            OdinAttributeType.a_pos: 0,
+            OdinAttributeType.a_normal: 1,
+            OdinAttributeType.a_uv0: 2,
+            OdinAttributeType.a_uv1: 3,
+            OdinAttributeType.a_color: 4,
+            OdinAttributeType.a_boneindex: 5,
+            OdinAttributeType.a_boneweights: 6,
+            OdinAttributeType.a_tangent: 7,
+            OdinAttributeType.a_colorMul: 8,
+            OdinAttributeType.a_colorAdd: 9,
+            OdinAttributeType.a_model: 10,
+            OdinAttributeType.a_model2: 11,
+            OdinAttributeType.a_model3: 12,
+            OdinAttributeType.a_binormal: 13,
+            OdinAttributeType.a_skinningOffsets: 14,
+            OdinAttributeType.a_color1: 15,
+        }[component_type]
 
     @classmethod
     def to_attribute_name(cls, component_type: "OdinAttributeType") -> str:
@@ -270,3 +291,74 @@ class OdinAttributeFormat(IntEnum):
             cls.Int1010102Norm,
             cls.UInt1010102Norm,
         )
+
+    @classmethod
+    def from_components(cls, type: str, component_type: ComponentType):
+        if type == "SCALAR":
+            match (component_type):
+                case ComponentType.UnsignedInt:
+                    return OdinAttributeFormat.UInt
+                case ComponentType.Float:
+                    return OdinAttributeFormat.Float
+
+        if type == "VEC2":
+            match (component_type):
+                case ComponentType.Byte:
+                    return OdinAttributeFormat.Byte2
+                case ComponentType.UnsignedByte:
+                    return OdinAttributeFormat.UByte2
+
+                case ComponentType.Short:
+                    return OdinAttributeFormat.Short2
+                case ComponentType.UnsignedShort:
+                    return OdinAttributeFormat.UShort2
+
+                case ComponentType.UnsignedInt:
+                    return OdinAttributeFormat.UInt2
+                case ComponentType.Float:
+                    return OdinAttributeFormat.Float2
+
+        if type == "VEC3":
+            match (component_type):
+                case ComponentType.Byte:
+                    return OdinAttributeFormat.Byte3
+                case ComponentType.UnsignedByte:
+                    return OdinAttributeFormat.UByte3
+
+                case ComponentType.Short:
+                    return OdinAttributeFormat.Short3
+                case ComponentType.UnsignedShort:
+                    return OdinAttributeFormat.UShort3
+
+                case ComponentType.UnsignedInt:
+                    return OdinAttributeFormat.UInt3
+                case ComponentType.Float:
+                    return OdinAttributeFormat.Float3
+
+        if type == "VEC4":
+            match (component_type):
+                case ComponentType.Byte:
+                    return OdinAttributeFormat.Byte4
+                case ComponentType.UnsignedByte:
+                    return OdinAttributeFormat.UByte4
+
+                case ComponentType.Short:
+                    return OdinAttributeFormat.Short4
+                case ComponentType.UnsignedShort:
+                    return OdinAttributeFormat.UShort4
+
+                case ComponentType.UnsignedInt:
+                    return OdinAttributeFormat.UInt4
+                case ComponentType.Float:
+                    return OdinAttributeFormat.Float4
+
+        if type == "MAT2" and component_type == ComponentType.Float:
+            return OdinAttributeFormat.Float3x3
+
+        if type == "MAT3" and component_type == ComponentType.Float:
+            return OdinAttributeFormat.Float2x2
+
+        if type == "MAT4" and component_type == ComponentType.Float:
+            return OdinAttributeFormat.Float4x4
+
+        raise Exception("Unsupported odin mesh format")

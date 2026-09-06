@@ -10,6 +10,7 @@ class OdinRawVertexAttribute:
     data: np.ndarray
     data_type: str  # DataType
     component_type: ComponentType
+    source_format: Format
 
 
 @dataclass

@@ -131,77 +131,6 @@ class MeshExporter(glTF2BaseExporterComponent):
 
         return groups
 
-    @staticmethod
-    def get_odin_format(data: OdinRawVertexAttribute):
-        if data.data_type == "SCALAR":
-            match (data.component_type):
-                case ComponentType.UnsignedInt:
-                    return OdinAttributeFormat.UInt
-                case ComponentType.Float:
-                    return OdinAttributeFormat.Float
-
-        if data.data_type == "VEC2":
-            match (data.component_type):
-                case ComponentType.Byte:
-                    return OdinAttributeFormat.Byte2
-                case ComponentType.UnsignedByte:
-                    return OdinAttributeFormat.UByte2
-
-                case ComponentType.Short:
-                    return OdinAttributeFormat.Short2
-                case ComponentType.UnsignedShort:
-                    return OdinAttributeFormat.UShort2
-
-                case ComponentType.UnsignedInt:
-                    return OdinAttributeFormat.UInt2
-                case ComponentType.Float:
-                    return OdinAttributeFormat.Float2
-
-        if data.data_type == "VEC3":
-            match (data.component_type):
-                case ComponentType.Byte:
-                    return OdinAttributeFormat.Byte3
-                case ComponentType.UnsignedByte:
-                    return OdinAttributeFormat.UByte3
-
-                case ComponentType.Short:
-                    return OdinAttributeFormat.Short3
-                case ComponentType.UnsignedShort:
-                    return OdinAttributeFormat.UShort3
-
-                case ComponentType.UnsignedInt:
-                    return OdinAttributeFormat.UInt3
-                case ComponentType.Float:
-                    return OdinAttributeFormat.Float3
-
-        if data.data_type == "VEC4":
-            match (data.component_type):
-                case ComponentType.Byte:
-                    return OdinAttributeFormat.Byte4
-                case ComponentType.UnsignedByte:
-                    return OdinAttributeFormat.UByte4
-
-                case ComponentType.Short:
-                    return OdinAttributeFormat.Short4
-                case ComponentType.UnsignedShort:
-                    return OdinAttributeFormat.UShort4
-
-                case ComponentType.UnsignedInt:
-                    return OdinAttributeFormat.UInt4
-                case ComponentType.Float:
-                    return OdinAttributeFormat.Float4
-
-        if data.data_type == "MAT2" and data.component_type == ComponentType.Float:
-            return OdinAttributeFormat.Float3x3
-
-        if data.data_type == "MAT3" and data.component_type == ComponentType.Float:
-            return OdinAttributeFormat.Float2x2
-
-        if data.data_type == "MAT4" and data.component_type == ComponentType.Float:
-            return OdinAttributeFormat.Float4x4
-
-        raise Exception("Unsupported odin mesh format")
-
     def create_odin_layout(self, attributes: list[OdinVertexAttribute]):
         offset = 0
         layout = []
@@ -223,13 +152,68 @@ class MeshExporter(glTF2BaseExporterComponent):
         buffer: OdinRawVertexAttribute,
         data: np.ndarray,
     ):
+        destination_format = OdinAttributeFormat(attribute.format)
+        source_format = OdinAttributeFormat(buffer.source_format)
+        destination_dtype = OdinAttributeFormat.to_numpy_dtype(destination_format)
+        destination_count = OdinAttributeFormat.to_element_count(destination_format)
+
+        def normalized_values(
+            values: np.ndarray, fmt: OdinAttributeFormat
+        ) -> np.ndarray:
+            values = np.asarray(values)
+            if OdinAttributeFormat.is_normalized(fmt) and np.issubdtype(
+                values.dtype, np.integer
+            ):
+                return values.astype(np.float32) / np.iinfo(values.dtype).max
+            return values
+
+        def convert(values: np.ndarray) -> np.ndarray:
+            # UInt bone weights use Odin's packed 11/11/10 representation.
+            if (
+                attribute.name == OdinAttributeType.a_boneweights
+                and destination_format == OdinAttributeFormat.UInt
+            ):
+                values = normalized_values(np.asarray(values), source_format)
+                values = np.asarray(values, dtype=np.float32).reshape(-1)
+                values = np.pad(values, (0, max(0, 4 - values.size)))[:4]
+                quantized = np.clip(
+                    np.rint(values[1:4] / 0.0002442),
+                    0,
+                    [2047, 2047, 1023],
+                ).astype(np.uint32)
+                return np.asarray(
+                    [(quantized[0] << 21) | (quantized[1] << 10) | quantized[2]],
+                    dtype=np.uint32,
+                )
+
+            values = normalized_values(np.asarray(values), source_format)
+            values = np.asarray(values).reshape(-1)
+            if values.size > destination_count:
+                values = values[:destination_count]
+            elif values.size < destination_count:
+                values = np.pad(values, (0, destination_count - values.size))
+
+            if np.issubdtype(destination_dtype, np.integer):
+                if OdinAttributeFormat.is_normalized(destination_format):
+                    info = np.iinfo(destination_dtype)
+                    values = np.rint(values * info.max)
+                    values = np.clip(values, info.min, info.max)
+                else:
+                    info = np.iinfo(destination_dtype)
+                    values = np.clip(values, info.min, info.max)
+            return np.asarray(values, dtype=destination_dtype)
+
         for i in range(count):
             vertex = data[i]
 
             destination_vertex = vertex[attribute.name.name]
             source_vertex = buffer.data[i]
+            if destination_format == source_format:
+                destination_vertex[: len(source_vertex)] = source_vertex
+                continue
 
-            destination_vertex[: len(source_vertex)] = source_vertex
+            converted = convert(source_vertex)
+            destination_vertex[: len(converted)] = converted
 
     def create_odin_buffer(
         self, attributes: list[tuple[OdinVertexAttribute, OdinRawVertexAttribute]]
@@ -266,8 +250,21 @@ class MeshExporter(glTF2BaseExporterComponent):
 
         odin_attributes: list[tuple[OdinVertexAttribute, OdinRawVertexAttribute]] = []
         for i, (id_type, attribute) in enumerate(attribute_mapping.items()):
-            attribute_format = MeshExporter.get_odin_format(attribute)
-            descriptor = OdinVertexAttribute(attribute_format, i, id_type, 0)
+            attribute_format = attribute.source_format
+            match (id_type):
+                case OdinAttributeType.a_boneweights:
+                    # Normalize to UInt later
+                    attribute_format = OdinAttributeFormat.UInt
+                case OdinAttributeType.a_uv0 | OdinAttributeType.a_uv1:
+                    # Normalize to short
+                    attribute_format = OdinAttributeFormat.Short2Norm
+                case OdinAttributeType.a_normal:
+                    # Normalize byte
+                    attribute_format = OdinAttributeFormat.Byte4Norm
+
+            descriptor = OdinVertexAttribute(
+                attribute_format, OdinAttributeType.to_index(id_type), id_type, 0
+            )
             odin_attributes.append((descriptor, attribute))
 
             # Handle mesh bbox
@@ -460,6 +457,5 @@ class MeshExporter(glTF2BaseExporterComponent):
         for skin in gltf.skins or []:
             bounds: list[BoundingBox] = skin.extensions[glTF_extension_name]["bounds"]
             skin.extensions[glTF_extension_name]["bounds"] = [
-                bound.as_flat_list() 
-                for bound in bounds
+                bound.as_flat_list() for bound in bounds
             ]
