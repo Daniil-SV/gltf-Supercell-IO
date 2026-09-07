@@ -10,150 +10,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..ui import glTFSupercellExporterProperties
 
-# def gather_skins(blender_primitive, export_settings):
-#    attributes = {}
-#
-#    if not export_settings["gltf_skins"]:
-#        return attributes
-#
-#    # Retrieve max set index
-#    max_bone_set_index = 0
-#    while blender_primitive["attributes"].get(
-#        "JOINTS_" + str(max_bone_set_index)
-#    ) and blender_primitive["attributes"].get("WEIGHTS_" + str(max_bone_set_index)):
-#        max_bone_set_index += 1
-#    max_bone_set_index -= 1
-#
-#    # Here, a set represents a group of 4 weights.
-#    # So max_bone_set_index value:
-#    # if -1 => No weights
-#    # if 0 => Max 4 weights
-#    # if 1 => Max 8 weights
-#    # etc...
-#
-#    # If no skinning
-#    if max_bone_set_index < 0:
-#        return attributes
-#
-#    # Retrieve the wanted by user max set index
-#    if export_settings["gltf_all_vertex_influences"]:
-#        wanted_max_bone_set_index = max_bone_set_index
-#    else:
-#        wanted_max_bone_set_index = (
-#            ceil(export_settings["gltf_vertex_influences_nb"] / 4) - 1
-#        )
-#
-#    # No need to create a set with only zero if user asked more than requested group set.
-#    if wanted_max_bone_set_index > max_bone_set_index:
-#        wanted_max_bone_set_index = max_bone_set_index
-#
-#    # Set warning, for the case where there are more group of 4 weights needed
-#    # Warning for the case where we are in the same group, will be done later
-#    # (for example, 3 weights needed, but 2 wanted by user)
-#    if max_bone_set_index > wanted_max_bone_set_index:
-#        if export_settings["warning_joint_weight_exceed_already_displayed"] is False:
-#            export_settings["log"].warning(
-#                "There are more than {} joint vertex influences."
-#                "The {} with highest weight will be used (and normalized).".format(
-#                    export_settings["gltf_vertex_influences_nb"],
-#                    export_settings["gltf_vertex_influences_nb"],
-#                )
-#            )
-#            export_settings["warning_joint_weight_exceed_already_displayed"] = True
-#
-#        # Take into account only the first set of 4 weights
-#        max_bone_set_index = wanted_max_bone_set_index
-#
-#    # Convert weights to numpy arrays, and setting joints
-#    # weight_arrs = []
-#    for s in range(0, max_bone_set_index + 1):
-#
-#        weight_id = f"WEIGHTS_{s}"
-#        weight_odin_id = OdinAttributeType.from_attribute_name(weight_id)
-#        if weight_odin_id is None:
-#            continue
-#
-#        weight = blender_primitive["attributes"][weight_id]
-#        weight = np.array(weight, dtype=np.float32)
-#        weight = weight.reshape(len(weight) // 4, 4)
-#
-#        # Set warning for the case where we are in the same group, will be done later (for example, 3 weights needed, but 2 wanted by user)
-#        # And then, remove no more needed weights
-#        if (
-#            s == max_bone_set_index
-#            and not export_settings["gltf_all_vertex_influences"]
-#        ):
-#            # Check how many to remove
-#            to_remove = (wanted_max_bone_set_index + 1) * 4 - export_settings[
-#                "gltf_vertex_influences_nb"
-#            ]
-#            if to_remove > 0:
-#                warning_done = False
-#                for i in range(0, to_remove):
-#                    idx = 4 - 1 - i
-#                    if not all(weight[:, idx]):
-#                        if warning_done is False:
-#                            if (
-#                                export_settings[
-#                                    "warning_joint_weight_exceed_already_displayed"
-#                                ]
-#                                is False
-#                            ):
-#                                export_settings["log"].warning(
-#                                    "There are more than {} joint vertex influences."
-#                                    "The {} with highest weight will be used (and normalized).".format(
-#                                        export_settings["gltf_vertex_influences_nb"],
-#                                        export_settings["gltf_vertex_influences_nb"],
-#                                    )
-#                                )
-#                                export_settings[
-#                                    "warning_joint_weight_exceed_already_displayed"
-#                                ] = True
-#                            warning_done = True
-#                    weight[:, idx] = 0.0
-#
-#        # joints
-#        joint_id = "JOINTS_" + str(s)
-#        joint_odin_id = OdinAttributeType.from_attribute_name(joint_id)
-#        if joint_odin_id is None:
-#            continue
-#
-#        internal_joint = blender_primitive["attributes"][joint_id]
-#        component_type = ComponentType.UnsignedShort
-#        if max(internal_joint) < 256:
-#            component_type = ComponentType.UnsignedByte
-#        joints = np.array(
-#            internal_joint,
-#            dtype=ComponentType.to_numpy_dtype(component_type),
-#        )
-#        joints = joints.reshape(-1, 4)
-#
-#        if (
-#            s == max_bone_set_index
-#            and not export_settings["gltf_all_vertex_influences"]
-#        ):
-#            # Check how many to remove
-#            to_remove = (wanted_max_bone_set_index + 1) * 4 - export_settings[
-#                "gltf_vertex_influences_nb"
-#            ]
-#            if to_remove > 0:
-#                for i in range(0, to_remove):
-#                    idx = 4 - 1 - i
-#                    joints[:, idx] = 0.0
-#
-#        weight_total = weight.sum(axis=1).reshape(-1, 1)
-#        attributes[weight_odin_id] = OdinRawVertexAttribute(
-#            weight / weight_total, DataType.Vec4, ComponentType.Float
-#        )
-#
-#        attributes[joint_odin_id] = OdinRawVertexAttribute(
-#            joints, DataType.Vec4, component_type
-#        )
-#
-#    return attributes
-
 
 def gather_skins(blender_primitive, export_settings):
+    """A bit optimized skins gather function for Odin purposes"""
     attributes = {}
 
     if not export_settings["gltf_skins"]:
@@ -265,6 +124,8 @@ def gather_primitive_attributes(blender_primitive, export_settings: dict):
             if skin_attribute:
                 attributes.update(gather_skins(blender_primitive, export_settings))
             else:
+                # Creating special odin attribute proxy to retrieve and use in custom primitive hook
+                # Do the same in gather_skins function
                 attributes[odin_attribute] = OdinRawVertexAttribute(
                     attribute["data"],
                     attribute["data_type"],

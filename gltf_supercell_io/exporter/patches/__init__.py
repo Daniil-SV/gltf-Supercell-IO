@@ -7,6 +7,8 @@ from .animation_keyframes import (
 )
 from .accessor import primitive_gather_attribute
 from .flat import flat_glb_output
+from .primitives import primitive_master_hook
+from .buffers import buffer_caching_patch
 
 __all__ = [
     "inverse_bind_matrices_gather",
@@ -15,5 +17,7 @@ __all__ = [
     "sampled_armature_keyframes_patch",
     "fcurve_keyframes_patch",
     "primitive_gather_attribute",
-    "flat_glb_output"
+    "flat_glb_output",
+    "primitive_master_hook",
+    "buffer_caching_patch"
 ]

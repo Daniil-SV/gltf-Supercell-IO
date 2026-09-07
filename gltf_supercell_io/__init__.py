@@ -8,6 +8,8 @@ from .exporter.patches import (
     fcurve_keyframes_patch,
     primitive_gather_attribute,
     flat_glb_output,
+    primitive_master_hook,
+    buffer_caching_patch,
 )
 from .com.utilities.patcher import register_patch, unregister_patch
 from .exporter.ui import glTFSupercellExporterProperties
@@ -89,6 +91,8 @@ patches = [
     fcurve_keyframes_patch,
     primitive_gather_attribute,
     flat_glb_output,
+    primitive_master_hook,
+    buffer_caching_patch,
 ]
 patches_5_2_up = [inline_materials]
 

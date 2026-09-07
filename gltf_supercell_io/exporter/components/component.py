@@ -1,7 +1,10 @@
 import bpy
 from typing import TYPE_CHECKING, cast, Any
 from abc import abstractmethod
+from dataclasses import dataclass
 import numpy as np
+from ...com.odin.attribute import OdinMeshDataInfo
+from io_scene_gltf2.io.exp.binary_data import BinaryData
 
 if TYPE_CHECKING:
     from ..ui import glTFSupercellExporterProperties
@@ -19,16 +22,47 @@ def requires_extension(func):
     return wrapper
 
 
+def requires_odin(func):
+    def wrapper(*args, **kwargs):
+        cls = args[0]
+
+        if cls.properties.enabled and cls.properties.use_odin:
+            func(*args, **kwargs)
+
+    return wrapper
+
+
+@dataclass
+class PrimitiveData:
+    attributes: dict
+    indices: np.ndarray | Any | None
+    mode: str | None
+    material: bpy.types.Material | None
+    targets: list | None
+
+
 class glTF2BaseExporterComponent:
     def __init__(self, **kwargs):
         scene = cast(Any, bpy.context.scene)
         self.properties: glTFSupercellExporterProperties = (
             scene.glTFSupercellExporterProperties
         )
-        self.buffers: list[np.ndarray] = []
+
+        # Buffer view with shared mesh properties
+        # Should used as reference in all odin object
+        # and filled with buffers at serialization stage
+        self.odin_view = BinaryData(b"")
+
+        self.vertex_descriptors: list[OdinMeshDataInfo] = []
+        self.index_buffer: bytes = b""
+        self.vertex_buffer: bytes = b""
 
     @abstractmethod
     def pre_export_hook(self, export_settings: dict):
+        pass
+
+    @abstractmethod
+    def post_export_hook(self, export_settings: dict):
         pass
 
     @abstractmethod
@@ -63,6 +97,7 @@ class glTF2BaseExporterComponent:
 
     @abstractmethod
     def gather_gltf_extensions_hook(self, gltf: "Gltf", export_settings: dict):
+        """ Note: This hook used after most of properties traversal. Last traverse will be executed at root extension property"""
         pass
 
     @abstractmethod
@@ -91,4 +126,19 @@ class glTF2BaseExporterComponent:
         blender_object: bpy.types.Object,
         export_settings: dict,
     ):
+        pass
+
+    @abstractmethod
+    def gather_primitive_hook(
+        self,
+        primitive: PrimitiveData,
+        export_settings: dict,
+    ):
+        pass
+    
+    @abstractmethod
+    def gather_gltf_hook(
+        self, active_scene_idx: int, scenes, animations, export_settings: dict
+    ):
+        """ Note: This hook used before any traversal operations and before animations/scenes handling"""
         pass

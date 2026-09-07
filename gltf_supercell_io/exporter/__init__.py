@@ -3,6 +3,7 @@ from .components.common import CommonExporter
 from .components.component import glTF2BaseExporterComponent
 from .components.materials import MaterialExporter
 from .components.mesh import MeshExporter
+from .components.skin import SkinExporter
 
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
@@ -10,6 +11,7 @@ from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 class glTF2ExportUserExtension(
     MeshExporter,
     MaterialExporter,
+    SkinExporter,
     CommonExporter,
     glTF2BaseExporterComponent,
     MixinClass,
@@ -25,6 +27,9 @@ class glTF2ExportUserExtension(
 
     def pre_export_hook(self, export_settings):
         self("pre_export_hook", export_settings)
+
+    def post_export_hook(self, export_settings):
+        self("post_export_hook", export_settings)
 
     def gather_mesh_hook(
         self,
@@ -102,5 +107,21 @@ class glTF2ExportUserExtension(
             "gather_node_hook",
             gltf2_node,
             blender_object,
+            export_settings,
+        )
+
+    def gather_primitive_hook(self, primitive, export_settings):
+        self(
+            "gather_primitive_hook",
+            primitive,
+            export_settings,
+        )
+
+    def gather_gltf_hook(self, active_scene_idx, scenes, animations, export_settings):
+        self(
+            "gather_gltf_hook",
+            active_scene_idx,
+            scenes,
+            animations,
             export_settings,
         )

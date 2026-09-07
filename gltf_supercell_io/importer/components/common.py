@@ -37,9 +37,9 @@ class CommonImporter(glTF2BaseImporterComponent):
         which is not standard and needs to be converted to normal here
         """
         # Exclusive Accessor Component Types
-        # 1 - Float Vector 3
-        # 2 - Float Vector 4
-        # 3 - Matrix4x4
+        # 1 - Float Vector 3 (?)
+        # 2 - Float Vector 4 (?)
+        # 3 - Skinning inverse bind matrix
 
         accessors: List[Accessor] = gltf.data.accessors or []
         for accessor in accessors:

@@ -51,6 +51,15 @@ class OdinAttributeReader:
         self.format = format
         self.type = type
         self.dtype = Format.to_numpy_dtype(self.format)
+
+        # Odin packs skin weights into one UInt32, but decoding expands it to
+        # four normalized values.  Those values must stay floating-point:
+        # using the storage format's uint32 dtype truncates every fractional
+        # influence to zero before Blender's importer can create vertex
+        # groups.
+        if self.type == Type.a_boneweights and self.format == Format.UInt:
+            self.dtype = np.dtype(np.float32)
+
         self.elements_count = Format.to_element_count(self.format)
         self.normalized = Format.is_normalized(self.format)
         self.data = buffer

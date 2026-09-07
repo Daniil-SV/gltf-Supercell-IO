@@ -21,18 +21,19 @@ class BoundingBox:
     def union(self, other: Self):
         return self.union_point(other.min, other.max)
 
-    def is_empty(self):
+    @property
+    def empty(self):
         return bool(
             np.all(self.min == self.info.max) and np.all(self.max == self.info.min)
         )
 
     def as_list(self):
-        if self.is_empty():
+        if self.empty:
             return [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
 
         return [self.min.tolist(), self.max.tolist()]
 
     def as_flat_list(self):
-        if self.is_empty():
+        if self.empty:
             return [0.0] * 6
         return self.min.tolist() + self.max.tolist()

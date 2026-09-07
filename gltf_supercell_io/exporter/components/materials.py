@@ -123,7 +123,7 @@ class MaterialExporter(glTF2BaseExporterComponent):
             gltf2_material.extensions[glTF_material_extension_name] = Extension(
                 glTF_material_extension_name, material, False
             )
-        else:
+        elif self.properties.use_odin:
             # Append as odin material so we can pick up later in primitive processing hook
             gltf2_material.extensions[glTF_extension_name] = Extension(
                 glTF_extension_name, material, False
