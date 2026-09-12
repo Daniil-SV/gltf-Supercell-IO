@@ -1,10 +1,5 @@
 from typing import List, Sequence
-from .flags import OdinAnimationFlags
-
-RotationChannels = 4
-TranslationChannels = 3
-ScaleChannels = 3
-
+from ..odin.animation_flags import OdinAnimationFlags
 
 class OdinAnimationReader:
     def __init__(self, animation: dict):

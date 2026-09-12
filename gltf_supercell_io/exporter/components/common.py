@@ -1,7 +1,5 @@
-from dataclasses import asdict
-
 from ..patches.buffers import clear_buffer_cache
-from .component import glTF2BaseExporterComponent, requires_extension
+from .component import glTF2BaseExporterComponent, requires_extension, to_dict
 from ...com import glTF_material_extension_name, glTF_extension_name
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 from io_scene_gltf2.io.com.constants import ComponentType
@@ -63,9 +61,6 @@ class CommonExporter(glTF2BaseExporterComponent):
         # Then comes vertex data layer
         self.odin_view.data += self.vertex_buffer
 
-        # And then animations
-        # TODO:
-
     def gather_odin_extension(self, gltf: "Gltf"):
         if gltf.extensions is None:
             gltf.extensions = {}
@@ -74,8 +69,6 @@ class CommonExporter(glTF2BaseExporterComponent):
 
         # Assign data blob to odin descriptor
         extension["bufferView"] = self.odin_view
-
-        # TODO: animation
 
         gltf.extensions[glTF_extension_name] = Extension(
             glTF_extension_name, extension, True
@@ -91,9 +84,15 @@ class CommonExporter(glTF2BaseExporterComponent):
             ]
 
     def serialize_odin_mesh(self, gltf: "Gltf"):
+        if glTF_extension_name not in gltf.extensions:
+            return
+
         extension = gltf.extensions[glTF_extension_name].extension
-        descriptors = extension["meshDataInfos"]
-        extension["meshDataInfos"] = [asdict(descriptor) for descriptor in descriptors]
+        descriptors = extension.get("meshDataInfos")
+        if descriptors is None:
+            return
+
+        extension["meshDataInfos"] = [to_dict(descriptor) for descriptor in descriptors]
 
     @requires_extension
     def gather_gltf_hook(self, active_scene_idx, scenes, animations, export_settings):

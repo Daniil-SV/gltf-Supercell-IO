@@ -4,6 +4,7 @@ from .components.component import glTF2BaseExporterComponent
 from .components.materials import MaterialExporter
 from .components.mesh import MeshExporter
 from .components.skin import SkinExporter
+from .components.animation import AnimationExporter
 
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
@@ -12,6 +13,7 @@ class glTF2ExportUserExtension(
     MeshExporter,
     MaterialExporter,
     SkinExporter,
+    AnimationExporter,
     CommonExporter,
     glTF2BaseExporterComponent,
     MixinClass,

@@ -1,5 +1,5 @@
 from .reader import OdinAnimationReader
-from .reader import TranslationChannels, RotationChannels, ScaleChannels
+from ..odin.animation import TRANSLATION_CHANNELS, ROTATION_CHANNELS, SCALE_CHANNELS
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 import numpy as np
@@ -25,14 +25,14 @@ class OdinRawAnimationReader(OdinAnimationReader):
         self.buffer = BinaryData.decode_accessor(gltf, animation.get("accessor"))
 
         self.translation: list[list[list[float]]] = [
-            [[] for _ in range(TranslationChannels)]
+            [[] for _ in range(TRANSLATION_CHANNELS)]
             for _ in range(len(self.used_nodes))
         ]
         self.rotation: list[list[list[float]]] = [
-            [[] for _ in range(RotationChannels)] for _ in range(len(self.used_nodes))
+            [[] for _ in range(ROTATION_CHANNELS)] for _ in range(len(self.used_nodes))
         ]
         self.scale: list[list[list[float]]] = [
-            [[] for _ in range(ScaleChannels)] for _ in range(len(self.used_nodes))
+            [[] for _ in range(SCALE_CHANNELS)] for _ in range(len(self.used_nodes))
         ]
 
     def read(self):
@@ -59,13 +59,13 @@ class OdinRawAnimationReader(OdinAnimationReader):
             for frame_index in range(self.node_keyframes(node_index)):
                 t, r, s = np.split(data[node_index][frame_index], [3, 7])
 
-                for i in range(TranslationChannels):
+                for i in range(TRANSLATION_CHANNELS):
                     self.translation[node_index][i].append(t[i])
 
-                for i in range(RotationChannels):
+                for i in range(ROTATION_CHANNELS):
                     self.rotation[node_index][i].append(r[i])
 
-                for i in range(ScaleChannels):
+                for i in range(SCALE_CHANNELS):
                     self.scale[node_index][i].append(s[i])
 
     def node_keyframes(self, node_idx: int):

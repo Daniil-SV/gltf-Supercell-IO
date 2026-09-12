@@ -6,10 +6,10 @@ from .component import glTF2BaseImporterComponent
 from ...com.animation.reader import OdinAnimationReader
 from ...com.animation import OdinAnimation
 from ...com import glTF_extension_name
-from ...com.animation.packedReader import (
-    TranslationChannels,
-    ScaleChannels,
-    RotationChannels,
+from ...com.odin.animation import (
+    TRANSLATION_CHANNELS,
+    ROTATION_CHANNELS,
+    SCALE_CHANNELS,
 )
 
 from io_scene_gltf2.blender.imp.vnode import VNode
@@ -223,7 +223,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
             if translation is not None:
                 translation = [
-                    list(translation[c][f] for c in range(TranslationChannels))
+                    list(translation[c][f] for c in range(TRANSLATION_CHANNELS))
                     for f in range(duration)
                 ]
                 self.do_animation_channel(
@@ -239,7 +239,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
             if rotation is not None:
                 rotation = [
-                    list(rotation[c][f] for c in range(RotationChannels))
+                    list(rotation[c][f] for c in range(ROTATION_CHANNELS))
                     for f in range(duration)
                 ]
                 self.do_animation_channel(
@@ -255,7 +255,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
             if scale is not None:
                 scale = [
-                    list(scale[c][f] for c in range(ScaleChannels))
+                    list(scale[c][f] for c in range(SCALE_CHANNELS))
                     for f in range(duration)
                 ]
 

@@ -1,14 +1,22 @@
 import bpy
-from typing import TYPE_CHECKING, cast, Any
-from abc import abstractmethod
-from dataclasses import dataclass
-import numpy as np
 from ...com.odin.attribute import OdinMeshDataInfo
 from io_scene_gltf2.io.exp.binary_data import BinaryData
 
+from typing import TYPE_CHECKING, cast, Any
+from abc import abstractmethod
+from dataclasses import dataclass, fields
+import numpy as np
+
 if TYPE_CHECKING:
     from ..ui import glTFSupercellExporterProperties
-    from io_scene_gltf2.io.com.gltf2_io import Gltf, Material, Mesh, Skin, Node
+    from io_scene_gltf2.io.com.gltf2_io import (
+        Gltf,
+        Material,
+        Mesh,
+        Skin,
+        Node,
+        Animation,
+    )
     from io_scene_gltf2.blender.exp.tree import VExportTree
 
 
@@ -30,6 +38,19 @@ def requires_odin(func):
             func(*args, **kwargs)
 
     return wrapper
+
+
+def to_dict(obj):
+    if isinstance(obj, list):
+        return [to_dict(sub) for sub in obj]
+
+    if isinstance(obj, tuple):
+        return (to_dict(sub) for sub in obj)
+
+    if not hasattr(obj, "__dataclass_fields__"):
+        return obj
+
+    return {field.name: to_dict(getattr(obj, field.name)) for field in fields(obj)}
 
 
 @dataclass
@@ -97,7 +118,7 @@ class glTF2BaseExporterComponent:
 
     @abstractmethod
     def gather_gltf_extensions_hook(self, gltf: "Gltf", export_settings: dict):
-        """ Note: This hook used after most of properties traversal. Last traverse will be executed at root extension property"""
+        """Note: This hook used after most of properties traversal. Last traverse will be executed at root extension property"""
         pass
 
     @abstractmethod
@@ -135,10 +156,14 @@ class glTF2BaseExporterComponent:
         export_settings: dict,
     ):
         pass
-    
+
     @abstractmethod
     def gather_gltf_hook(
-        self, active_scene_idx: int, scenes, animations, export_settings: dict
+        self,
+        active_scene_idx: int,
+        scenes,
+        animations: list["Animation"],
+        export_settings: dict,
     ):
-        """ Note: This hook used before any traversal operations and before animations/scenes handling"""
+        """Note: This hook used before any traversal operations and before animations/scenes handling"""
         pass

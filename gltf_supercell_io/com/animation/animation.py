@@ -1,12 +1,17 @@
 from .reader import OdinAnimationReader
 from .rawReader import OdinRawAnimationReader
 from .packedReader import OdinPackedReader
-from .continuousPackedReader import OdinContinuousPackedReader
+from .rlePackedReader import OdinContinuousPackedReader
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 
 
 class OdinAnimation:
-    """Supercell odin animation reader"""
+    """
+    Supercell odin animation reader
+    The implementation of this class completely diverges from the real one 
+    in favor of such a design in order to support all versions of 
+    odin animation that used by Supercell
+    """
 
     @staticmethod
     def CreatePackedReader(gltf: glTFImporter, descriptor: dict) -> OdinPackedReader:

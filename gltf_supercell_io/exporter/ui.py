@@ -53,7 +53,7 @@ def draw_export(context: bpy.context, layout: bpy.types.UILayout):
     if body:
         body.prop(props, "path_prefix")
         body.prop(props, "use_odin")
-        # body.prop(props, "debug_output")
+        body.prop(props, "debug_output")
 
     if body and not props.use_odin:
         legacy_header, legacy_body = body.panel("Legacy", default_closed=True)

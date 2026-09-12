@@ -1,7 +1,7 @@
 from typing import List, Tuple
-from .flags import OdinAnimationFlags
+from ..odin.animation_flags import OdinAnimationFlags
 from .reader import OdinAnimationReader
-from .reader import TranslationChannels, RotationChannels, ScaleChannels
+from ..odin.animation import TRANSLATION_CHANNELS, ROTATION_CHANNELS, SCALE_CHANNELS
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 import numpy as np
@@ -28,7 +28,7 @@ class OdinPackedReader(OdinAnimationReader):
         self.used_nodes = [node.get("nodeIndex") or 0 for node in self.nodes]
         self.flags = [OdinAnimationFlags(node.get("flags") or 0) for node in self.nodes]
 
-        frametime = [animation.has_frametime for animation in self.flags]
+        frametime = [animation.has_tracktime for animation in self.flags]
         self.frame_stride = 0
         if True in frametime and False in frametime:
             raise Exception(
@@ -105,20 +105,20 @@ class OdinPackedReader(OdinAnimationReader):
         translation_multiplier, scale_multiplier = multiplier
 
         rotation = [
-            np.zeros((frame_count), dtype=np.float32) for _ in range(RotationChannels)
+            np.zeros((frame_count), dtype=np.float32) for _ in range(ROTATION_CHANNELS)
         ]
 
         translation = [
             np.zeros((frame_count), dtype=np.float32)
-            for _ in range(TranslationChannels)
+            for _ in range(TRANSLATION_CHANNELS)
         ]
 
         scale = [
-            np.full((frame_count), 1, dtype=np.float32) for _ in range(ScaleChannels)
+            np.full((frame_count), 1, dtype=np.float32) for _ in range(SCALE_CHANNELS)
         ]
 
         for frame_index in range(frame_count):
-            for i in range(TranslationChannels):
+            for i in range(TRANSLATION_CHANNELS):
                 value = float(bTranslation[i])
                 if flags.has_translation:
                     transform = (
@@ -127,16 +127,16 @@ class OdinPackedReader(OdinAnimationReader):
                     value += transform
                 translation[i][frame_index] = value
 
-            for i in range(RotationChannels):
+            for i in range(ROTATION_CHANNELS):
                 value = float(bRotation[i])
                 if flags.has_rotation:
                     value = float(nRotation[i][frame_index]) / 32767.0
 
                 rotation[i][frame_index] = value
 
-            for i in range(ScaleChannels):
+            for i in range(SCALE_CHANNELS):
                 value = float(bScale[i])
-                if flags.has_scale or flags.has_separate_scale:
+                if flags.has_scale3D or flags.has_scale:
                     transform = float(nScale[i][frame_index]) * scale_multiplier
                     value += transform
 
@@ -148,40 +148,40 @@ class OdinPackedReader(OdinAnimationReader):
         node_elements_counter = 0
 
         rotation = [
-            np.zeros((frame_count), dtype=np.int16) for _ in range(RotationChannels)
+            np.zeros((frame_count), dtype=np.int16) for _ in range(ROTATION_CHANNELS)
         ]
 
         translation = [
-            np.zeros((frame_count), dtype=np.int16) for _ in range(TranslationChannels)
+            np.zeros((frame_count), dtype=np.int16) for _ in range(TRANSLATION_CHANNELS)
         ]
 
-        scale = [np.zeros((frame_count), dtype=np.int16) for _ in range(ScaleChannels)]
+        scale = [np.zeros((frame_count), dtype=np.int16) for _ in range(SCALE_CHANNELS)]
 
         for frame_index in range(frame_count):
-            if not flags.has_frametime:
+            if not flags.has_tracktime:
                 self.transform_index = (
                     self.frame_stride * frame_index
                 ) + node_elements_counter
 
-            if flags.has_frametime:
+            if flags.has_tracktime:
                 # Probably value of frametime?
                 # Skip for now. Idk why it exist at all. Maybe for compatibility with gltf animations
                 self.read_normalized_value()
 
             if flags.has_rotation:
-                for i in range(RotationChannels):
+                for i in range(ROTATION_CHANNELS):
                     rotation[i][frame_index] = self.read_normalized_value()
 
             if flags.has_translation:
-                for i in range(TranslationChannels):
+                for i in range(TRANSLATION_CHANNELS):
                     translation[i][frame_index] = self.read_normalized_value()
 
-            if flags.has_scale and flags.has_separate_scale:
-                for i in range(ScaleChannels):
+            if flags.has_scale3D and flags.has_scale:
+                for i in range(SCALE_CHANNELS):
                     scale[i][frame_index] = self.read_normalized_value()
-            elif flags.has_scale:
+            elif flags.has_scale3D:
                 value = self.read_normalized_value()
-                for i in range(ScaleChannels):
+                for i in range(SCALE_CHANNELS):
                     scale[i][frame_index] = value
 
         return (translation, rotation, scale)
@@ -192,13 +192,13 @@ class OdinPackedReader(OdinAnimationReader):
         return result
 
     def read_base_translation(self) -> List[int]:
-        return [self.read_base_value() for _ in range(TranslationChannels)]
+        return [self.read_base_value() for _ in range(TRANSLATION_CHANNELS)]
 
     def read_base_rotation(self) -> List[int]:
-        return [self.read_base_value() for _ in range(RotationChannels)]
+        return [self.read_base_value() for _ in range(ROTATION_CHANNELS)]
 
     def read_base_scale(self) -> List[int]:
-        return [self.read_base_value() for _ in range(ScaleChannels)]
+        return [self.read_base_value() for _ in range(SCALE_CHANNELS)]
 
     def read_base_value(self) -> int:
         idx = self.node_base_data_offset + self.local_node_offset
