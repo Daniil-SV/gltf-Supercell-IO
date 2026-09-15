@@ -15,9 +15,16 @@ if TYPE_CHECKING:
 
 
 class OdinMeshImporter(glTF2BaseImporterComponent):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.cache: dict[int, dict] = {}
+        self.accessor_offset = 0
+
     def decode_mesh_attribute(
         self,
         gltf: "glTFImporter",
+        pretransform: np.ndarray | None,
         buffer_idx: int,
         attribute: dict,
         offset: int,
@@ -38,9 +45,14 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
             stride,
         )
 
+        # if attribute_type in [OdinAttributeType.a_pos]:
+        #     data.matrix = pretransform
+
         return (name, data)
 
-    def decode_mesh_info(self, gltf: "glTFImporter", idx: int):
+    def decode_mesh_info(
+        self, gltf: "glTFImporter", pretransform: np.ndarray | None, idx: int
+    ):
         descriptor = self.get_extension(gltf) or {}
         mesh_infos: list[dict] = descriptor.get("meshDataInfos")  # type: ignore
         buffer_idx = descriptor.get("bufferView")
@@ -60,11 +72,11 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
 
             for attribute in descriptors.get("attributes", []):
                 name, data = self.decode_mesh_attribute(
-                    gltf, buffer_idx, attribute, offset, stride
+                    gltf, pretransform, buffer_idx, attribute, offset, stride
                 )
                 attributes[name] = data
 
-        gltf.supercell_vertex_cache[idx] = attributes  # type: ignore
+        self.cache[idx] = attributes
 
     def handle_vertex_color(self, gltf: "glTFImporter", primitive: "MeshPrimitive"):
         # TRICK: gltf importer proceeds vertex color kinda... strangely.
@@ -91,7 +103,12 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
                 mat[f"COLOR_{i}"] = mat[None]
                 i += 1
 
-    def decode_primitive(self, gltf: "glTFImporter", primitive: "MeshPrimitive"):
+    def decode_primitive(
+        self,
+        gltf: "glTFImporter",
+        primitive: "MeshPrimitive",
+        pretransform: np.ndarray | None,
+    ):
         extensions = primitive.extensions
         if extensions is None:
             return
@@ -104,8 +121,8 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         if mesh_info_idx is None:
             return
 
-        if mesh_info_idx not in gltf.supercell_vertex_cache:  # type: ignore
-            self.decode_mesh_info(gltf, mesh_info_idx)
+        if mesh_info_idx not in self.cache:
+            self.decode_mesh_info(gltf, pretransform, mesh_info_idx)
 
         # MEGA HACK: instead of writing back to buffer and then to accessors and blah blah blah...
         # We do next magic:
@@ -119,13 +136,12 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
 
         primitive.attributes = {}
 
-        for name, data in gltf.supercell_vertex_cache[mesh_info_idx].items():  # type: ignore # noqa
-            fake_accessor_idx = gltf.supercell_vertex_accessor_offset  # type: ignore
-            primitive.attributes[name] = fake_accessor_idx
-            gltf.decode_accessor_cache[fake_accessor_idx] = data
-            gltf.accessor_cache[fake_accessor_idx] = data
+        for name, data in self.cache[mesh_info_idx].items():
+            primitive.attributes[name] = self.accessor_offset
+            gltf.decode_accessor_cache[self.accessor_offset] = data
+            gltf.accessor_cache[self.accessor_offset] = data
 
-            gltf.supercell_vertex_accessor_offset += 1  # type: ignore
+            self.accessor_offset += 1  # type: ignore
 
     @requires_extension
     def gather_import_mesh_options(
@@ -151,11 +167,17 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         # Sooo... since exporter setups some settings at top-level of mesh conversion
         # we need to decode all mesh infos here to have them ready for primitives decoding
         # not a good place but... there will be no peaceful solution
-        gltf.supercell_vertex_accessor_offset = len(  # type: ignore #noqa
-            gltf.data.accessors or []
-        )
+        self.accessor_offset = len(gltf.data.accessors or [])
+
+        pretransform: np.ndarray | None = None
+        extensions = pymesh.extensions or {}
+        odin: dict | None = extensions.get(glTF_extension_name)
+        if odin is not None:
+            pretransform_matrix = odin.get("inversePretransform")
+            if pretransform_matrix is not None:
+                pretransform = np.asarray(pretransform_matrix, dtype=np.float32)
 
         primitives: List["MeshPrimitive"] = pymesh.primitives or []
         for primitive in primitives:
-            self.decode_primitive(gltf, primitive)
+            self.decode_primitive(gltf, primitive, pretransform)
             self.handle_vertex_color(gltf, primitive)

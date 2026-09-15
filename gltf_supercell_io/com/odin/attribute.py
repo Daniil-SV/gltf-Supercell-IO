@@ -62,6 +62,7 @@ class OdinAttributeReader:
 
         self.elements_count = Format.to_element_count(self.format)
         self.normalized = Format.is_normalized(self.format)
+        self.matrix: np.ndarray | None = None
         self.data = buffer
 
     def read(self, offset: int) -> np.ndarray:
@@ -82,6 +83,9 @@ class OdinAttributeReader:
         if self.normalized and np.issubdtype(self.dtype, np.integer):
             info = np.iinfo(array.dtype.name)
             array = array.astype(np.float32) / info.max
+
+        if self.matrix is not None:
+            array = array @ self.matrix[:3] + self.matrix[3]
 
         # Small fixup for normal attributes
         # Often it present as Vec4 attribute
