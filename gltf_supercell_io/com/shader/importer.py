@@ -125,6 +125,9 @@ class ShaderImporter(ShaderUtils):
         if self.sc_material.blend_mode == ScBlendMode.SCREEN:
             result.append(self.setup_modifier("ScScreenModifier", "Screen"))
 
+        if self.sc_material.blend_mode == ScBlendMode.ADDITIVE:
+            result.append(self.setup_modifier("ScAdditiveModifier", "Additive"))
+
         if result:
             return (result[0], result[-1])
 

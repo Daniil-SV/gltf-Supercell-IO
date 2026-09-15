@@ -88,9 +88,16 @@ class SHADER_PT_SC_create_utilities(Panel):
             lightmap.item_type = "utility"
             lightmap.item_label = "Lightmaps"
 
-            multiply = self.layout.operator(
-                "supercell.create_tree", text="Create Multiply Modifier"
+            screen = self.layout.operator(
+                "supercell.create_tree", text="Create Screen Modifier"
             )
-            multiply.item_id = "ScScreenModifier"
-            multiply.item_type = "utility"
-            multiply.item_label = "Multiply"
+            screen.item_id = "ScScreenModifier"
+            screen.item_type = "utility"
+            screen.item_label = "Screen"
+            
+            add = self.layout.operator(
+                "supercell.create_tree", text="Create Additive Modifier"
+            )
+            add.item_id = "ScAdditiveModifier"
+            add.item_type = "utility"
+            add.item_label = "Screen"

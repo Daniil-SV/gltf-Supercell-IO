@@ -265,6 +265,9 @@ class ShaderExporter:
         if "ScScreenModifier" in self.modifiers:
             self.sc_material.blend_mode = ScBlendMode.SCREEN
 
+        if "ScAdditiveModifier" in self.modifiers:
+            self.sc_material.blend_mode = ScBlendMode.ADDITIVE
+
     def export_material(self, legacy=False) -> dict:
         """Export the material to dictionary"""
 
