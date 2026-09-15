@@ -444,6 +444,7 @@ class MeshExporter(glTF2BaseExporterComponent):
 
         skinned_mask = 0
         bbox = BoundingBox()
+        has_static = False
         for i, primitive in enumerate(primitives):
             self.gather_odin_material(mesh, primitive, i, export_settings)
 
@@ -454,6 +455,8 @@ class MeshExporter(glTF2BaseExporterComponent):
 
             if pool.skinned:
                 skinned_mask |= 1 << i
+            else:
+                has_static = True
 
             primitive_bbox = self.bbox.get(key)
             if primitive_bbox and not primitive_bbox.empty:
@@ -477,6 +480,15 @@ class MeshExporter(glTF2BaseExporterComponent):
                 (skinned_mask >> 32) & 0xFFFFFFFF,
             ],
         }
+
+        if has_static:
+            mesh_extension["inversePretransform"] = [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0],
+            ]
+
         mesh.extensions[glTF_extension_name] = Extension(
             glTF_extension_name, mesh_extension, True
         )
