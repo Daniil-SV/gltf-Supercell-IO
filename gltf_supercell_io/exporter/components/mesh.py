@@ -482,12 +482,7 @@ class MeshExporter(glTF2BaseExporterComponent):
         }
 
         if has_static:
-            mesh_extension["inversePretransform"] = [
-                [1.0, 0.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-                [0.0, 0.0, 0.0],
-            ]
+            mesh_extension["isPretransformed"] = True
 
         mesh.extensions[glTF_extension_name] = Extension(
             glTF_extension_name, mesh_extension, True
