@@ -1,6 +1,5 @@
 import bpy
 import numpy as np
-from mathutils import Vector, Quaternion
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
 from io_scene_gltf2.io.com.gltf2_io import Node, Animation
 

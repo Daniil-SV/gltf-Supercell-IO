@@ -43,19 +43,19 @@ class OdinAnimationFlags(int):
 
     @property
     def has_scale3D(self) -> bool:
-        return self.__get_flag(3)
-
-    @staticmethod
-    def withScale3D(flags: int = 0):
-        return OdinAnimationFlags.__withFlag(flags, 3)
-
-    @property
-    def has_scale(self) -> bool:
         return self.__get_flag(4)
 
     @staticmethod
-    def withScale(flags: int = 0):
+    def withScale3D(flags: int = 0):
         return OdinAnimationFlags.__withFlag(flags, 4)
+
+    @property
+    def has_scale(self) -> bool:
+        return self.__get_flag(3)
+
+    @staticmethod
+    def withScale(flags: int = 0):
+        return OdinAnimationFlags.__withFlag(flags, 3)
 
     @property
     def elements_count(self) -> int:

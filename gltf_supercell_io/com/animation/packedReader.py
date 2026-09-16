@@ -176,13 +176,14 @@ class OdinPackedReader(OdinAnimationReader):
                 for i in range(TRANSLATION_CHANNELS):
                     translation[i][frame_index] = self.read_normalized_value()
 
-            if flags.has_scale3D and flags.has_scale:
-                for i in range(SCALE_CHANNELS):
-                    scale[i][frame_index] = self.read_normalized_value()
-            elif flags.has_scale3D:
-                value = self.read_normalized_value()
-                for i in range(SCALE_CHANNELS):
-                    scale[i][frame_index] = value
+            if flags.has_scale:
+                if flags.has_scale3D:
+                    value = self.read_normalized_value()
+                    for i in range(SCALE_CHANNELS):
+                        scale[i][frame_index] = value
+                else:
+                    for i in range(SCALE_CHANNELS):
+                        scale[i][frame_index] = self.read_normalized_value()
 
         return (translation, rotation, scale)
 

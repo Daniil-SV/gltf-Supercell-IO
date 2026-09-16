@@ -7,7 +7,7 @@ from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 import numpy as np
 
 
-class OdinContinuousPackedReader(OdinPackedReader):
+class OdinRlePackedReader(OdinPackedReader):
     def __init__(self, gltf: glTFImporter, animation):
         super().__init__(gltf, animation)
 
@@ -35,6 +35,8 @@ class OdinContinuousPackedReader(OdinPackedReader):
         frame_index = 0
         while frame_count > frame_index:
             run_length = int(self.read_normalized_value())
+            if run_length >= frame_count:
+                raise Exception("Frame run length is too big!")
 
             if run_length > 0:
                 for _ in range(run_length):
@@ -85,6 +87,11 @@ class OdinContinuousPackedReader(OdinPackedReader):
                                 scale[i][frame_index] = scale[i][prev]
 
                     frame_index += 1
+
+        if self.elements_counter != self.data_size:
+            raise Exception(
+                "The number of read elements does not match the actual size of the node"
+            )
 
         self.elements_counter = 0
         return (translation, rotation, scale)

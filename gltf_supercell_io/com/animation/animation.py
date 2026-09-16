@@ -1,7 +1,7 @@
 from .reader import OdinAnimationReader
 from .rawReader import OdinRawAnimationReader
 from .packedReader import OdinPackedReader
-from .rlePackedReader import OdinContinuousPackedReader
+from .rlePackedReader import OdinRlePackedReader
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 
 
@@ -17,7 +17,7 @@ class OdinAnimation:
     def CreatePackedReader(gltf: glTFImporter, descriptor: dict) -> OdinPackedReader:
         packed: dict = descriptor.get("packed")  # type: ignore
         if packed.get("uintAccessor") is not None:
-            return OdinContinuousPackedReader(gltf, descriptor)
+            return OdinRlePackedReader(gltf, descriptor)
 
         return OdinPackedReader(gltf, descriptor)
 
