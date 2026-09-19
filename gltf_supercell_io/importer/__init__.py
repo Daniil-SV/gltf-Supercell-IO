@@ -42,6 +42,9 @@ class glTF2ImportUserExtension(
     def gather_import_mesh_options(self, mesh_options, pymesh, skin_idx, gltf):
         self("gather_import_mesh_options", mesh_options, pymesh, skin_idx, gltf)
 
+    def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
+        self("gather_import_mesh_after_hook", gltf_mesh, blender_mesh, gltf)
+
     def gather_import_animation_before_hook(self, anim_idx, gltf):
         self("gather_import_animation_before_hook", anim_idx, gltf)
 

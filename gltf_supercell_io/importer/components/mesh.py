@@ -21,10 +21,17 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         self.cache: dict[int, dict] = {}
         self.accessor_offset = 0
 
+    @requires_extension
+    def gather_import_gltf_before_hook(self, gltf: "glTFImporter"):
+        # Importer components outlive a single glTF import. Attribute readers
+        # retain a view of the source buffer, so they must never be reused for
+        # a later file that happens to use the same meshDataInfoIndex.
+        self.cache.clear()
+        self.accessor_offset = 0
+
     def decode_mesh_attribute(
         self,
         gltf: "glTFImporter",
-        pretransform: np.ndarray | None,
         buffer_idx: int,
         attribute: dict,
         offset: int,
@@ -45,14 +52,9 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
             stride,
         )
 
-        # if attribute_type in [OdinAttributeType.a_pos]:
-        #     data.matrix = pretransform
-
         return (name, data)
 
-    def decode_mesh_info(
-        self, gltf: "glTFImporter", pretransform: np.ndarray | None, idx: int
-    ):
+    def decode_mesh_info(self, gltf: "glTFImporter", idx: int):
         descriptor = self.get_extension(gltf) or {}
         mesh_infos: list[dict] = descriptor.get("meshDataInfos")  # type: ignore
         buffer_idx = descriptor.get("bufferView")
@@ -72,7 +74,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
 
             for attribute in descriptors.get("attributes", []):
                 name, data = self.decode_mesh_attribute(
-                    gltf, pretransform, buffer_idx, attribute, offset, stride
+                    gltf, buffer_idx, attribute, offset, stride
                 )
                 attributes[name] = data
 
@@ -107,7 +109,6 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         self,
         gltf: "glTFImporter",
         primitive: "MeshPrimitive",
-        pretransform: np.ndarray | None,
     ):
         extensions = primitive.extensions
         if extensions is None:
@@ -122,7 +123,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
             return
 
         if mesh_info_idx not in self.cache:
-            self.decode_mesh_info(gltf, pretransform, mesh_info_idx)
+            self.decode_mesh_info(gltf, mesh_info_idx)
 
         # MEGA HACK: instead of writing back to buffer and then to accessors and blah blah blah...
         # We do next magic:
@@ -169,15 +170,29 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         # not a good place but... there will be no peaceful solution
         self.accessor_offset = len(gltf.data.accessors or [])
 
-        pretransform: np.ndarray | None = None
-        extensions = pymesh.extensions or {}
-        odin: dict | None = extensions.get(glTF_extension_name)
-        if odin is not None:
-            pretransform_matrix = odin.get("inversePretransform")
-            if pretransform_matrix is not None:
-                pretransform = np.asarray(pretransform_matrix, dtype=np.float32)
-
         primitives: List["MeshPrimitive"] = pymesh.primitives or []
         for primitive in primitives:
-            self.decode_primitive(gltf, primitive, pretransform)
+            self.decode_primitive(gltf, primitive)
             self.handle_vertex_color(gltf, primitive)
+
+    @requires_extension
+    def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
+        extensions = gltf_mesh.extensions or {}
+        odin: dict | None = extensions.get(glTF_extension_name)
+        if odin is None:
+            return
+
+        inverse_pretransform = odin.get("inversePretransform")
+        if inverse_pretransform is None:
+            return
+
+        matrix_4x3 = np.asarray(inverse_pretransform, dtype=np.float32)
+        if matrix_4x3.shape != (4, 3):
+            raise ImportError("inversePretransform must be a 4x3 affine matrix")
+
+        # Odin serializes xMatrix44 as four XYZ columns. The missing W values
+        # are (0, 0, 0, 1). The game stores this matrix on the geometry and
+        # applies it as part of rendering; transforming the completed Blender
+        # mesh is equivalent and also lets Blender update normals correctly.
+        matrix_4x4 = np.column_stack((matrix_4x3, (0.0, 0.0, 0.0, 1.0)))
+        blender_mesh.transform(gltf.matrix_gltf_to_blender(matrix_4x4.ravel()))  # type: ignore
