@@ -35,7 +35,11 @@ class OdinRlePackedReader(OdinPackedReader):
         frame_index = 0
         while frame_count > frame_index:
             run_length = int(self.read_normalized_value())
-            if run_length >= frame_count:
+            if run_length == 0:
+                raise Exception("Frame run length cannot be zero!")
+
+            remaining_frames = frame_count - frame_index
+            if abs(run_length) > remaining_frames:
                 raise Exception("Frame run length is too big!")
 
             if run_length > 0:

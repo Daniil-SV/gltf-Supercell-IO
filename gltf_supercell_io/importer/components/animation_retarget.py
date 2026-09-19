@@ -1,7 +1,7 @@
 import bpy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-from mathutils import Matrix
+from typing import TYPE_CHECKING, Any, cast
+from mathutils import Matrix, Vector, Quaternion
 from .component import glTF2BaseImporterComponent, requires_extension
 
 from io_scene_gltf2.blender.imp.vnode import VNode
@@ -158,6 +158,46 @@ class AnimationImporter(glTF2BaseImporterComponent):
         paired_set = set(n for n in bones if n in src_pose.bones)
         pairs = [n for n in bones if n in paired_set]
 
+        def pose_scale_override(pose_bone):
+            return pose_bone.get(
+                "scPoseScaleOverride",
+                pose_bone.get("scScaleOverride", (1.0, 1.0, 1.0)),
+            )
+
+        scale_factors = {}
+        source_parent = {
+            bone.name: bone.parent.name if bone.parent else None
+            for bone in source.data.bones
+        }
+
+        for bone in pairs:
+            source_bone = src_pose.bones[bone]
+            scale = source_bone.get(
+                "scPoseScaleOverride", source_bone.get("scScaleOverride")
+            )
+
+            if scale is None:
+                resolved_scale = (1.0, 1.0, 1.0)
+            else:
+                target_scale = pose_scale_override(tgt_pose.bones[bone])
+                resolved_scale = tuple(
+                    (scale[i] / target_scale[i] if abs(target_scale[i]) > 1e-6 else 1.0)
+                    for i in range(3)
+                )
+
+            scale_factors[bone] = resolved_scale
+
+        def has_visibility_scaled_ancestor(name):
+            parent = source_parent.get(name)
+            while parent is not None:
+                factor = scale_factors.get(parent)
+                if factor is None:
+                    factor = pose_scale_override(src_pose.bones[parent])
+                if any(abs(component) < 0.01 for component in factor):
+                    return True
+                parent = source_parent.get(parent)
+            return False
+
         # Force quaternion mode on the bones we are going to keyframe (matches glb)
         for bone in pairs:
             tgt_pose.bones[bone].rotation_mode = "QUATERNION"
@@ -217,7 +257,9 @@ class AnimationImporter(glTF2BaseImporterComponent):
         for fi, f in enumerate(iter_frames):
             scene.frame_set(f)
 
-            # Source (armature-local) pose matrices for this frame, for paired bones.
+            # Keep translation and rotation in the source's imported world pose.
+            # Visibility scales such as 0.00087 must not collapse descendant
+            # translations toward the parent bone.
             src_mats = {n: src_pose.bones[n].matrix for n in pairs}
 
             # Walk the entire target chain top-down. For each bone we compute its
@@ -232,6 +274,10 @@ class AnimationImporter(glTF2BaseImporterComponent):
             for bone in bones:
                 pname = parent_of[bone]
                 parent_pose = pose_cache[pname] if pname is not None else identity
+
+                loc: Vector = None  # type: ignore
+                quat: Quaternion = None  # type: ignore
+                scale: Vector = None  # type: ignore
                 if bone in paired_set:
                     desired = sw_to_tw @ src_mats[bone]
                     basis = (
@@ -239,16 +285,30 @@ class AnimationImporter(glTF2BaseImporterComponent):
                         @ parent_pose.inverted_safe()
                         @ desired
                     )
+                    loc, quat, scale = basis.decompose()
+
+                    if has_visibility_scaled_ancestor(bone):
+                        # A near-zero visibility scale on an ancestor collapses
+                        # descendant world positions onto that ancestor. Preserve
+                        # the source-local translation channel for those chains.
+                        loc = src_pose.bones[bone].matrix_basis.to_translation()
+
+                    factor = scale_factors[bone]
+                    scale.x *= factor[0]
+                    scale.y *= factor[1]
+                    scale.z *= factor[2]
+                    basis = Matrix.LocRotScale(loc, quat, scale)
+                    # Scale correction is a channel correction only. The
+                    # uncorrected desired pose keeps descendant TR intact.
                     pose = desired
                 else:
                     basis = identity
                     pose = parent_pose @ rest_offset[bone]
+
                 pose_cache[bone] = pose
 
                 # Decompose the matrix_basis of paired bones directly into their channel value lists
                 if bone in paired_set:
-                    loc, quat, scale = basis.decompose()
-
                     loc_vals[bone][0][fi] = loc.x
                     loc_vals[bone][1][fi] = loc.y
                     loc_vals[bone][2][fi] = loc.z

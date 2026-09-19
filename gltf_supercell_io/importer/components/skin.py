@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 from .component import glTF2BaseImporterComponent, requires_extension
 from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 from io_scene_gltf2.blender.imp.vnode import VNode
+from io_scene_gltf2.blender.com.gltf2_blender_math import scale_rot_swap_matrix
 from ...com.utilities.accessor import MemoryAccessor
 import numpy as np
 
@@ -252,6 +253,11 @@ class SkinImporter(glTF2BaseImporterComponent):
                     if pb is not None:
                         sx, sy, sz = override
                         pb["scScaleOverride"] = (sx, sy, sz)
+                        pose_scale = (
+                            scale_rot_swap_matrix(vnode.rotation_before)
+                            @ Vector(override)
+                        )
+                        pb["scPoseScaleOverride"] = tuple(pose_scale)
                         if tr is not None:
                             # tr layout (set in ``bake_pose_scale_into_vnodes``):
                             #   0..2  translation  (Blender Z-up coords)
