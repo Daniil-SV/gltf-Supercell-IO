@@ -117,6 +117,13 @@ jobs:
 
           uv lock --refresh-package neko-web-api-client
 
+      - name: Install uv pip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          uv run python -m ensurepip --default-pip
+
       - name: Build plugin
         shell: bash
         run: |
@@ -124,8 +131,7 @@ jobs:
 
           mkdir -p dist
 
-          uv run python -m scripts.build \
-            --mode "${{ needs.prepare.outputs.mode }}"
+          uv run python -m scripts.build
 
       - name: Rename plugin archive
         shell: bash

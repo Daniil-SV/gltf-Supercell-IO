@@ -168,7 +168,7 @@ wheels = [
 
 [[package]]
 name = "gltf-supercell-io"
-version = "1.1.0"
+version = "1.1.1"
 source = { virtual = "." }
 dependencies = [
     { name = "flatbuffers" },
@@ -254,7 +254,7 @@ dependencies = [
     { name = "httpx" },
 ]
 wheels = [
-    { filename = "neko_web_api_client-1.0.0-py3-none-any.whl", hash = "sha256:1991502b57e39dcfdea6d399f0cbf4653a6100dcf844e9155306bbf1e66efb89" },
+    { filename = "neko_web_api_client-1.0.0-py3-none-any.whl", hash = "sha256:582c401afa048eabd6d542a3f5b5bae8f189723bce6dea92c740d2ad1a9bff27" },
 ]
 
 [package.metadata]
