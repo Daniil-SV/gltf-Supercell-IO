@@ -1,8 +1,9 @@
-from .reader import OdinAnimationReader
-from ..odin.animation import TRANSLATION_CHANNELS, ROTATION_CHANNELS, SCALE_CHANNELS
-from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 import numpy as np
+from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
+from ..odin.animation import ROTATION_CHANNELS, SCALE_CHANNELS, TRANSLATION_CHANNELS
+from .reader import OdinAnimationReader
 
 
 class OdinRawAnimationReader(OdinAnimationReader):
@@ -46,9 +47,7 @@ class OdinRawAnimationReader(OdinAnimationReader):
             remapped = np.reshape(
                 self.buffer, (keyframes_total, frame_transform_length)
             )
-            data = np.split(
-                remapped, np.cumsum(self.keyframe_mapping)[:-1]
-            )  # type: ignore
+            data = np.split(remapped, np.cumsum(self.keyframe_mapping)[:-1])
         else:
             data = np.reshape(
                 self.buffer,

@@ -1,15 +1,16 @@
-from bpy.types import UILayout, Context, PropertyGroup
+from typing import Any, cast
+
 from bpy.props import (
     BoolProperty,
+    CollectionProperty,
     EnumProperty,
     FloatProperty,
     StringProperty,
-    CollectionProperty,
 )
-from ..com.shader_presets import ShaderPresetType
-from ..com import glTF_extension_name
+from bpy.types import Context, PropertyGroup, UILayout
 
-from typing import Any, cast
+from ..com import glTF_extension_name
+from ..com.shader_presets import ShaderPresetType
 
 fps_source_items = (
     (

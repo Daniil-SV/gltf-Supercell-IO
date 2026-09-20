@@ -1,6 +1,7 @@
-import addon_utils
 from importlib import import_module
 from types import ModuleType
+
+import addon_utils
 
 REPOSITORIES = [
     "bl_ext.vscode_development",
@@ -9,7 +10,7 @@ REPOSITORIES = [
     "bl_ext.system",
 ]
 MODULE_NAME = "gltf_image_converter"
-_candidates = [MODULE_NAME] + [".".join([repo, MODULE_NAME]) for repo in REPOSITORIES]
+_candidates = [MODULE_NAME] + [f"{repo}.{MODULE_NAME}" for repo in REPOSITORIES]
 
 _loaded = False
 _image_converter_name: str = ""

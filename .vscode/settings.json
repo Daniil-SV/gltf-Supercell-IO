@@ -1,0 +1,14 @@
+{
+    "python.languageServer": "None",
+    "python.defaultInterpreterPath": "./.venv/Scripts/python.exe",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true
+    },
+    "editor.formatOnSave": true,
+    "cSpell.diagnosticLevel": "Hint",
+    "python.analysis.inlayHints.variableTypes": true,
+    "python.analysis.inlayHints.functionReturnTypes": true,
+    "blender.addon.reloadOnSave": true,
+    "blender.addon.loadDirectory": "./gltf_supercell_io",
+}

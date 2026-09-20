@@ -1,8 +1,9 @@
-import sys
-from dataclasses import dataclass
-from typing import Any, Callable
-import types
 import importlib
+import sys
+import types
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass

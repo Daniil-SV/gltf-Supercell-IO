@@ -1,7 +1,8 @@
-import bpy
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
+
+import bpy
 import requests
 
 ASSETS_ENDPOINT_URL = "https://files.sc-workshop.com/asset-request/"
@@ -90,7 +91,6 @@ _cached_servers: list[Server] | None = None
 
 
 def list_assets(data: AssetRequest) -> list[str] | None:
-    global _cached_assets
     if not bpy.app.online_access:
         return None
 
@@ -117,7 +117,6 @@ def list_assets(data: AssetRequest) -> list[str] | None:
 
 
 def list_versions(data: AssetRequest) -> list[dict] | None:
-    global _cached_versions
     if not bpy.app.online_access:
         return None
 
@@ -205,8 +204,6 @@ def download_asset(request: str) -> bytes | None:
 
 
 def clean_asset_fetch_cache():
-    global _cached_assets
-    global _cached_versions
     global _cached_servers
 
     _cached_assets.clear()

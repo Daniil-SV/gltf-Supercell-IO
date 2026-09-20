@@ -1,17 +1,18 @@
-import numpy as np
-from typing import List, TYPE_CHECKING
-from .component import glTF2BaseImporterComponent, requires_extension
-from ...com.odin.constants import OdinAttributeFormat, OdinAttributeType
-from ...com.odin.attribute import OdinAttributeReader
-from ...com import glTF_extension_name
+from typing import TYPE_CHECKING
 
-from io_scene_gltf2.io.imp.gltf2_io_gltf import ImportError
-from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+import numpy as np
 from io_scene_gltf2.blender.imp.material import BlenderMaterial
+from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+from io_scene_gltf2.io.imp.gltf2_io_gltf import ImportError
+
+from ...com import glTF_extension_name
+from ...com.odin.attribute import OdinAttributeReader
+from ...com.odin.constants import OdinAttributeFormat, OdinAttributeType
+from .component import glTF2BaseImporterComponent, requires_extension
 
 if TYPE_CHECKING:
-    from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
     from io_scene_gltf2.io.com.gltf2_io import MeshPrimitive
+    from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 
 
 class OdinMeshImporter(glTF2BaseImporterComponent):
@@ -65,7 +66,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         attributes = {}
 
         mesh_info = mesh_infos[idx]
-        vertex_descriptors: List[dict] = mesh_info.get(
+        vertex_descriptors: list[dict] = mesh_info.get(
             "vertexDescriptors"
         )  # type: ignore
         for descriptors in vertex_descriptors:
@@ -101,7 +102,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
 
             # Fill material variants dict
             i = 0
-            while ("COLOR_%d" % i) in primitive.attributes:
+            while f"COLOR_{i}" in primitive.attributes:
                 mat[f"COLOR_{i}"] = mat[None]
                 i += 1
 
@@ -142,7 +143,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
             gltf.decode_accessor_cache[self.accessor_offset] = data
             gltf.accessor_cache[self.accessor_offset] = data
 
-            self.accessor_offset += 1  # type: ignore
+            self.accessor_offset += 1
 
     @requires_extension
     def gather_import_mesh_options(
@@ -170,7 +171,7 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         # not a good place but... there will be no peaceful solution
         self.accessor_offset = len(gltf.data.accessors or [])
 
-        primitives: List["MeshPrimitive"] = pymesh.primitives or []
+        primitives: list[MeshPrimitive] = pymesh.primitives or []
         for primitive in primitives:
             self.decode_primitive(gltf, primitive)
             self.handle_vertex_color(gltf, primitive)
@@ -195,4 +196,4 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
         # applies it as part of rendering; transforming the completed Blender
         # mesh is equivalent and also lets Blender update normals correctly.
         matrix_4x4 = np.column_stack((matrix_4x3, (0.0, 0.0, 0.0, 1.0)))
-        blender_mesh.transform(gltf.matrix_gltf_to_blender(matrix_4x4.ravel()))  # type: ignore
+        blender_mesh.transform(gltf.matrix_gltf_to_blender(matrix_4x4.ravel()))

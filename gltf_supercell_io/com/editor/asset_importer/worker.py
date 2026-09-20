@@ -1,11 +1,13 @@
-import bpy
 from dataclasses import dataclass
-from queue import Queue, Empty
+from pathlib import Path
+from queue import Empty, Queue
 from threading import Thread
-from typing import Any, cast, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
+
+import bpy
+
 from ...net.asset_request import AssetRequest, list_assets
 from .helpers import clean_asset_browser_cache
-from pathlib import Path
 
 if TYPE_CHECKING:
     from .asset_browser import AssetBrowserProperties
@@ -40,8 +42,6 @@ _worker_running = False
 
 
 def _worker_loop():
-    global _worker_running
-
     while _worker_running:
         try:
             msg: RefreshRequest = _request_queue.get(timeout=0.25)
@@ -107,8 +107,6 @@ def start_asset_worker():
 
 
 def asset_browser_timer():
-    global _request_counter
-
     try:
         while True:
             result: RefreshResult = _result_queue.get_nowait()

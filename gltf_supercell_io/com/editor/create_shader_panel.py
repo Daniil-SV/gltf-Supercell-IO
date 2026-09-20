@@ -1,5 +1,6 @@
 import bpy
-from bpy.types import Panel, Operator
+from bpy.types import Operator, Panel
+
 from ..shader.loader import LibraryLoader
 from ..shader_presets import ShaderPresets, ShaderPresetType
 from ..utilities.shader import ShaderUtils
@@ -13,7 +14,7 @@ class SHADER_OT_SC_create_shader(Operator):
     item_id: bpy.props.StringProperty()
     item_label: bpy.props.StringProperty(default="")
 
-    def execute(self, context):  # type: ignore
+    def execute(self, context):
         obj = context.active_object
         if obj is None:
             self.report({"WARNING"}, "No active object")
@@ -39,9 +40,8 @@ class SHADER_OT_SC_create_shader(Operator):
         else:
             raise NotImplementedError()
 
-        if node:
-            if self.item_label:
-                node.label = self.item_label
+        if node and self.item_label:
+            node.label = self.item_label
 
         return {"FINISHED"}
 
@@ -57,18 +57,24 @@ class SHADER_PT_SC_create_shader(Panel):
             unlit = self.layout.operator(
                 "supercell.create_tree", text="Create unlit shader"
             )
-            unlit.item_id = ShaderPresetType.UNLIT
-            unlit.item_type = "shader"
+            assert unlit is not None
 
             bs = self.layout.operator(
                 "supercell.create_tree", text="Create Brawl Stars shader"
             )
-            bs.item_id = ShaderPresetType.BRAWL_STARS
-            bs.item_type = "shader"
+            assert bs is not None
 
             bs_legacy = self.layout.operator(
                 "supercell.create_tree", text="Create Brawl Stars Legacy shader"
             )
+            assert bs_legacy is not None
+            
+            unlit.item_id = ShaderPresetType.UNLIT
+            unlit.item_type = "shader"
+            
+            bs.item_id = ShaderPresetType.BRAWL_STARS
+            bs.item_type = "shader"
+
             bs_legacy.item_id = ShaderPresetType.BRAWL_STARS_LEGACY
             bs_legacy.item_type = "shader"
 
@@ -84,20 +90,26 @@ class SHADER_PT_SC_create_utilities(Panel):
             lightmap = self.layout.operator(
                 "supercell.create_tree", text="Create Lightmap UV"
             )
-            lightmap.item_id = "ScLightmapUV"
-            lightmap.item_type = "utility"
-            lightmap.item_label = "Lightmaps"
+            assert lightmap is not None
 
             screen = self.layout.operator(
                 "supercell.create_tree", text="Create Screen Modifier"
             )
-            screen.item_id = "ScScreenModifier"
-            screen.item_type = "utility"
-            screen.item_label = "Screen"
-            
+            assert screen is not None
+
             add = self.layout.operator(
                 "supercell.create_tree", text="Create Additive Modifier"
             )
+            assert add is not None
+
+            screen.item_id = "ScScreenModifier"
+            screen.item_type = "utility"
+            screen.item_label = "Screen"
+
+            lightmap.item_id = "ScLightmapUV"
+            lightmap.item_type = "utility"
+            lightmap.item_label = "Lightmaps"
+
             add.item_id = "ScAdditiveModifier"
             add.item_type = "utility"
             add.item_label = "Screen"

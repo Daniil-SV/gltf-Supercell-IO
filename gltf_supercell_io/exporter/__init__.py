@@ -1,12 +1,12 @@
+from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+
 from ..com.utilities.mixin import MixinClass
+from .components.animation import AnimationExporter
 from .components.common import CommonExporter
 from .components.component import glTF2BaseExporterComponent
 from .components.materials import MaterialExporter
 from .components.mesh import MeshExporter
 from .components.skin import SkinExporter
-from .components.animation import AnimationExporter
-
-from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
 
 class glTF2ExportUserExtension(

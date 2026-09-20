@@ -6,7 +6,7 @@ def get_addon_module_name():
     if preferences is None:
         raise RuntimeError("Failed to access Blender preferences")
 
-    for mod_name in preferences.addons.keys():
+    for mod_name in preferences.addons.keys():  # noqa: SIM118
         if __package__ and __package__.startswith(mod_name):
             return mod_name
 

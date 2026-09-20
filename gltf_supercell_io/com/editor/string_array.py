@@ -1,11 +1,11 @@
 import bpy
-from bpy.types import (
-    PropertyGroup,
-    Operator,
-    UIList,
-)
 from bpy.props import (
     StringProperty,
+)
+from bpy.types import (
+    Operator,
+    PropertyGroup,
+    UIList,
 )
 
 
@@ -55,15 +55,15 @@ class StringArray:
 class STRING_ARRAY_UL_items(UIList):
     def draw_item(
         self,
-        context: bpy.types.Context,
-        layout: bpy.types.UILayout,
+        context,
+        layout,
         data,
         item,
-        icon: int | None,
+        icon,
         active_data,
-        active_property: str | None,
-        index: int | None,
-        flt_flag: int | None,
+        active_property,
+        index,
+        flt_flag,
     ):
         state = get_state()
 
@@ -88,8 +88,8 @@ class STRING_ARRAY_OT_add(Operator):
     def execute(self, context) -> set:
         try:
             data = context.path_resolve(self.data_path)
-        except Exception:
-            self.report({"ERROR"}, f"Invalid data path: {self.data_path}")
+        except Exception as e:
+            self.report({"ERROR"}, f"Invalid data path: {self.data_path}\n{e}")
             return {"CANCELLED"}
 
         collection = getattr(data, self.collection_prop, None)

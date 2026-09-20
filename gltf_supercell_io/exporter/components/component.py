@@ -1,23 +1,25 @@
-import bpy
-from ...com.odin.attribute import OdinMeshDataInfo
-from io_scene_gltf2.io.exp.binary_data import BinaryData
-
-from typing import TYPE_CHECKING, cast, Any
 from abc import abstractmethod
 from dataclasses import dataclass, fields
+from typing import TYPE_CHECKING, Any, cast
+
+import bpy
 import numpy as np
+from io_scene_gltf2.io.exp.binary_data import BinaryData
+
+from ...com.odin.attribute import OdinMeshDataInfo
 
 if TYPE_CHECKING:
-    from ..ui import glTFSupercellExporterProperties
+    from io_scene_gltf2.blender.exp.tree import VExportTree
     from io_scene_gltf2.io.com.gltf2_io import (
+        Animation,
         Gltf,
         Material,
         Mesh,
-        Skin,
         Node,
-        Animation,
+        Skin,
     )
-    from io_scene_gltf2.blender.exp.tree import VExportTree
+
+    from ..ui import glTFSupercellExporterProperties
 
 
 def requires_extension(func):
@@ -119,7 +121,6 @@ class glTF2BaseExporterComponent:
     @abstractmethod
     def gather_gltf_extensions_hook(self, gltf: "Gltf", export_settings: dict):
         """Note: This hook used after most of properties traversal. Last traverse will be executed at root extension property"""
-        pass
 
     @abstractmethod
     def gather_attribute_change(
@@ -166,4 +167,3 @@ class glTF2BaseExporterComponent:
         export_settings: dict,
     ):
         """Note: This hook used before any traversal operations and before animations/scenes handling"""
-        pass

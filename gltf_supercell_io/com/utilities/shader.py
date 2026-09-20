@@ -1,14 +1,19 @@
-from bpy.types import (
-    NodeSocket,
-    NodeSocketColor,
-    NodeSocketFloatFactor,
-    NodeSocketFloat,
-    NodeSocketBool,
-)
-from bpy.types import Material, ShaderNodeTree, ShaderNodeTexImage
 from typing import TypeGuard
+
+from bpy.types import (
+    Material,
+    NodeSocket,
+    NodeSocketBool,
+    NodeSocketColor,
+    NodeSocketFloat,
+    NodeSocketFloatFactor,
+    ShaderNodeTexImage,
+    ShaderNodeTree,
+)
 from io_scene_gltf2.blender.exp.material.search_node_tree import (
     NodeSocket as SocketWrapper,
+)
+from io_scene_gltf2.blender.exp.material.search_node_tree import (
     NodeTreeSearchResult,
     get_texture_node_from_socket,
 )

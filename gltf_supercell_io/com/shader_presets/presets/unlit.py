@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 from ..descriptor import ShaderPresetDescriptor
 
 if TYPE_CHECKING:
-    from ...shader.importer import ShaderImporter
     from ...shader.exporter import ShaderExporter
+    from ...shader.importer import ShaderImporter
 
 
 # Unlit shader socket map

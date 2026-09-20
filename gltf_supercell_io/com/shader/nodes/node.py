@@ -1,5 +1,6 @@
-from bpy.types import ShaderNodeCustomGroup
 from bpy.props import StringProperty
+from bpy.types import ShaderNodeCustomGroup
+
 from ..loader import LibraryLoader
 
 

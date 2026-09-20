@@ -1,10 +1,10 @@
-from typing import List
-from ..odin.animation_flags import OdinAnimationFlags
-from .packedReader import OdinPackedReader
-from ..odin.animation import TRANSLATION_CHANNELS, ROTATION_CHANNELS, SCALE_CHANNELS
-from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
 import numpy as np
+from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
+from ..odin.animation import ROTATION_CHANNELS, SCALE_CHANNELS, TRANSLATION_CHANNELS
+from ..odin.animation_flags import OdinAnimationFlags
+from .packed_reader import OdinPackedReader
 
 
 class OdinRlePackedReader(OdinPackedReader):
@@ -109,7 +109,7 @@ class OdinRlePackedReader(OdinPackedReader):
         self.elements_counter += 1
         return result
 
-    def read_base_rotation(self) -> List[int]:
+    def read_base_rotation(self) -> list[int]:
         if self.rotation_data is None:
             return super().read_base_rotation()
 

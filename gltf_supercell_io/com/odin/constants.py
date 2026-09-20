@@ -1,6 +1,8 @@
 from enum import IntEnum, StrEnum, auto
+
 import numpy as np
 from io_scene_gltf2.io.com.constants import ComponentType
+
 
 class OdinAttributeType(StrEnum):
     a_pos = auto()

@@ -4,6 +4,7 @@ from ...com.utilities.patcher import Patch
 def can_use_inline(self):
     return False
 
+
 # Well.... what i can say...
 # glTF IO in Blender 5.2 decided to use inlined materials for some reason, sounds like a good idea
 # https://github.com/KhronosGroup/glTF-Blender-IO/blob/0bcc09ef95c1643f25023b66e53b248bf6bba508/addons/io_scene_gltf2/blender/exp/material/materials.py#L80

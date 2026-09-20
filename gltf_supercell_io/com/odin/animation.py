@@ -1,6 +1,8 @@
-from .animation_flags import OdinAnimationFlags
 from dataclasses import dataclass, field
+
 from io_scene_gltf2.io.com.gltf2_io import Accessor, Node
+
+from .animation_flags import OdinAnimationFlags
 
 ROTATION_CHANNELS = 4
 TRANSLATION_CHANNELS = 3

@@ -1,5 +1,5 @@
 from .node import ShaderNodeScNode
-from .utility import ShaderNodeScUtility
 from .shader import ShaderNodeScShader
+from .utility import ShaderNodeScUtility
 
-__all__ = ["ShaderNodeScNode", "ShaderNodeScUtility", "ShaderNodeScShader"]
+__all__ = ["ShaderNodeScNode", "ShaderNodeScShader", "ShaderNodeScUtility"]

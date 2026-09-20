@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from math import radians
 from os.path import isfile
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import bpy
 import numpy as np
@@ -109,7 +109,7 @@ class ScwFile:
         self,
         primitive: ScwPrimitive,
         sources: tuple[ScwAttribute, ...],
-        weights: Optional[ScwWeights] = None,
+        weights: ScwWeights | None = None,
     ):
         indices: tuple[tuple[ScwAttribute, np.ndarray], ...] = tuple(
             [
@@ -281,11 +281,13 @@ class ScwFile:
     def _import_node_instance(self, node: Node, instance: ScwInstance, nodes: ScwNodes):
         # Skinned geometry
         if isinstance(instance, ScwControllerInstance):
-            node.mesh, node.skin = self._instantiate_skinned_mesh_instance(instance, nodes)  # type: ignore
+            node.mesh, node.skin = self._instantiate_skinned_mesh_instance(
+                instance, nodes
+            )
 
         # Geometry
         elif isinstance(instance, ScwGeometryInstance):
-            node.mesh = self._instantiate_mesh_instance(instance)  # type: ignore
+            node.mesh = self._instantiate_mesh_instance(instance)
 
         # Camera
         elif isinstance(instance, ScwCameraInstance):
@@ -311,7 +313,7 @@ class ScwFile:
             elif isinstance(instances, ScwCameraInstance):
                 node_name = f"{node.name}-camera-{i}"
 
-            gltf_node.name = node_name  # type: ignore
+            gltf_node.name = node_name
             self._import_node_instance(gltf_node, instance, nodes)
             node.children.append(len(self.gltf.data.nodes))
             self.gltf.data.nodes.append(gltf_node)
@@ -400,16 +402,16 @@ class ScwFile:
             gltf_node = gltf_nodes[idx]
 
             # Converting parent-based tree to child-based tree
-            gltf_node.children = gather_children(cast(str, node.name))
+            gltf_node.children = gather_children(node.name)
 
             # Processing node bind transformation
             if len(node.frames) > 0:
                 frame = node.frames[0]
-                gltf_node.translation = [val for val in frame.translation]  # type: ignore
+                gltf_node.translation = [val for val in frame.translation]
                 if frame.rotation is not None:
-                    gltf_node.rotation = [val for val in frame.rotation]  # type: ignore
+                    gltf_node.rotation = [val for val in frame.rotation]
 
-                gltf_node.scale = [val for val in frame.scale]  # type: ignore
+                gltf_node.scale = [val for val in frame.scale]
 
             # Processing instances
             self._import_node_instances(node.instances, gltf_node, nodes)

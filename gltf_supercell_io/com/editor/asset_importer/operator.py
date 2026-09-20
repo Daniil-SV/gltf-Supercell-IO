@@ -1,18 +1,20 @@
-import bpy
 import os
-from typing import Any, cast, TYPE_CHECKING, Optional
-from .helpers import get_version_sha, tempdir
-from .worker import RefreshRequest, update_asset_browser
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, cast
+
+import bpy
+
 from ...net.asset_request import (
     AssetRequest,
     download_asset_detailed,
     list_versions,
 )
-from pathlib import Path
+from .helpers import get_version_sha, tempdir
+from .worker import RefreshRequest, update_asset_browser
 
 if TYPE_CHECKING:
-    from .asset_browser import AssetBrowserProperties, AssetBrowserItem
     from ....importer.ui import glTFSupercellImporterProperties
+    from .asset_browser import AssetBrowserItem, AssetBrowserProperties
 
 
 class ASSETS_UL_list(bpy.types.UIList):
@@ -40,10 +42,10 @@ class ASSETS_OT_refresh(bpy.types.Operator):
     def safe_refresh(context):
         try:
             bpy.ops.supercell.assets_refresh(force=False)  # type: ignore
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
-    def execute(self, context):  # type: ignore
+    def execute(self, context):
         props = cast(
             "AssetBrowserProperties",
             cast(Any, context.scene).sc_asset_browser,
@@ -75,7 +77,7 @@ class ASSETS_OT_import_api(bpy.types.Operator):
 
     @staticmethod
     def download_asset(
-        filepath: str, game: Optional[str] = None, version: Optional[str] = None
+        filepath: str, game: str | None = None, version: str | None = None
     ) -> Path | None:
         """Assets import API that can be called directly with provided data
 
@@ -123,7 +125,7 @@ class ASSETS_OT_import_api(bpy.types.Operator):
 
         return output_path
 
-    def execute(self, context):  # type: ignore
+    def execute(self, context):
         props = cast(
             "AssetBrowserProperties", cast(Any, context.scene).sc_asset_browser
         )
@@ -146,7 +148,7 @@ class ASSETS_OT_import(bpy.types.Operator):
     bl_idname = "supercell.assets_import"
     bl_label = "Import GLB"
 
-    def execute(self, context):  # type: ignore
+    def execute(self, context):
         props = cast(
             "AssetBrowserProperties", cast(Any, context.scene).sc_asset_browser
         )

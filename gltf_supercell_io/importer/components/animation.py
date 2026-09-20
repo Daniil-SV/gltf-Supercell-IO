@@ -1,26 +1,26 @@
+from typing import TYPE_CHECKING, Any
+
 import bpy
-from mathutils import Vector
-from typing import TYPE_CHECKING, Dict, Any
-
-from .component import glTF2BaseImporterComponent
-from ...com.animation.reader import OdinAnimationReader
-from ...com.animation import OdinAnimation
-from ...com import glTF_extension_name
-from ...com.odin.animation import (
-    TRANSLATION_CHANNELS,
-    ROTATION_CHANNELS,
-    SCALE_CHANNELS,
-)
-
-from io_scene_gltf2.blender.imp.vnode import VNode
 from io_scene_gltf2.blender.imp.animation_utils import (
     get_or_create_action_and_slot,
     make_fcurve,
 )
+from io_scene_gltf2.blender.imp.vnode import VNode
+from mathutils import Vector
+
+from ...com import glTF_extension_name
+from ...com.animation import OdinAnimation
+from ...com.animation.reader import OdinAnimationReader
+from ...com.odin.animation import (
+    ROTATION_CHANNELS,
+    SCALE_CHANNELS,
+    TRANSLATION_CHANNELS,
+)
+from .component import glTF2BaseImporterComponent
 
 if TYPE_CHECKING:
-    from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
     from io_scene_gltf2.io.com.gltf2_io import Node
+    from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 
 
 class OdinAnimationImporter(glTF2BaseImporterComponent):
@@ -35,8 +35,8 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
         node_idx: int,
         gltf: "glTFImporter",
     ):
-        vnodes: Dict[Any, VNode] = gltf.vnodes  # type: ignore
-        vnode: VNode = vnodes[node_idx]  # type: ignore
+        vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
+        vnode: VNode = vnodes[node_idx]
 
         action, slot = get_or_create_action_and_slot(gltf, node_idx, anim_idx, path)
 
@@ -47,9 +47,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
             blender_path = "location"
             group_name = "Object Transforms"
             num_components = 3
-            values = [
-                gltf.loc_gltf_to_blender(vals) for vals in values  # type: ignore #noqa
-            ]
+            values = [gltf.loc_gltf_to_blender(vals) for vals in values]  # type: ignore
             values = vnode.base_locs_to_final_locs(values)
 
         elif path == "rotation":
@@ -57,8 +55,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
             group_name = "Object Transforms"
             num_components = 4
             values = [
-                gltf.quaternion_gltf_to_blender(vals)  # type: ignore #noqa
-                for vals in values
+                gltf.quaternion_gltf_to_blender(vals) for vals in values  # type: ignore
             ]
             values = vnode.base_rots_to_final_rots(values)
 
@@ -67,26 +64,29 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
             group_name = "Object Transforms"
             num_components = 3
             values = [
-                gltf.scale_gltf_to_blender(vals)  # type: ignore #noqa
-                for vals in values
+                gltf.scale_gltf_to_blender(vals) for vals in values  # type: ignore
             ]
             values = vnode.base_scales_to_final_scales(values)
 
         # Objects parented to a bone are translated to the bone tip by default.
         # Correct for this by translating backwards from the tip to the root
-        if vnode.type == VNode.Object and path == "translation":
-            if vnode.parent is not None and vnodes[vnode.parent].type == VNode.Bone:
-                bone_length = vnodes[vnode.parent].bone_length  # type: ignore
-                off = Vector((0, -bone_length, 0))
-                values = [vals + off for vals in values]
+        if (
+            vnode.type == VNode.Object
+            and path == "translation"
+            and vnode.parent is not None
+            and vnodes[vnode.parent].type == VNode.Bone
+        ):
+            bone_length = vnodes[vnode.parent].bone_length  # type: ignore
+            off = Vector((0, -bone_length, 0))
+            values = [vals + off for vals in values]
 
         if vnode.type == VNode.Bone:
             # Need to animate the pose bone when the node is a bone.
             group_name = vnode.blender_bone_name  # type: ignore
-            blender_path = 'pose.bones["%s"].%s' % (
-                bpy.utils.escape_identifier(vnode.blender_bone_name),  # type: ignore
-                blender_path,
+            rna_name = bpy.utils.escape_identifier(
+                vnode.blender_bone_name  # ty: ignore[unresolved-attribute]
             )
+            blender_path = f'pose.bones["{rna_name}"].{blender_path}'
 
             # Supercell scale baking adjustments (see importer/patches/vnodes.py).
             #
@@ -160,7 +160,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
                     scale_rot_swap_matrix,
                 )
 
-                swap = scale_rot_swap_matrix(vnode.rotation_before)  # type: ignore
+                swap = scale_rot_swap_matrix(vnode.rotation_before)
                 swapped_override = swap @ scale_override
                 ix, iy, iz = _safe_inverse(swapped_override)
                 values = [
@@ -181,14 +181,15 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
                 if values[i].dot(values[i - 1]) < 0:
                     values[i] = -values[i]
 
-        fps = fps * bpy.context.scene.render.fps_base  # type: ignore
+        assert bpy.context.scene is not None
+        fps = fps * bpy.context.scene.render.fps_base
 
         coords = [0] * (2 * duration)
         coords[::2] = (  # type: ignore
-            (animation.frame_spf * i) * fps for i in range(duration)  # type: ignore
+            (animation.frame_spf * i) * fps for i in range(duration)
         )
 
-        for i in range(0, num_components):
+        for i in range(num_components):
             coords[1::2] = (vals[i] for vals in values)
             make_fcurve(
                 action,
@@ -208,7 +209,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
         fps = bpy.context.scene.render.fps  # type: ignore
         if self.properties.fps_source == "SEQUENCE":
-            bpy.context.scene.render.fps = int(animation.frame_rate)  # type: ignore # noqa
+            bpy.context.scene.render.fps = int(animation.frame_rate)  # type: ignore
             fps = animation.frame_rate
         elif self.properties.fps_source == "CUSTOM":
             fps = self.properties.fps_custom
@@ -223,7 +224,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
             if translation is not None:
                 translation = [
-                    list(translation[c][f] for c in range(TRANSLATION_CHANNELS))
+                    [translation[c][f] for c in range(TRANSLATION_CHANNELS)]
                     for f in range(duration)
                 ]
                 self.do_animation_channel(
@@ -239,7 +240,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
             if rotation is not None:
                 rotation = [
-                    list(rotation[c][f] for c in range(ROTATION_CHANNELS))
+                    [rotation[c][f] for c in range(ROTATION_CHANNELS)]
                     for f in range(duration)
                 ]
                 self.do_animation_channel(
@@ -255,7 +256,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
 
             if scale is not None:
                 scale = [
-                    list(scale[c][f] for c in range(SCALE_CHANNELS))
+                    [scale[c][f] for c in range(SCALE_CHANNELS)]
                     for f in range(duration)
                 ]
 
@@ -272,7 +273,7 @@ class OdinAnimationImporter(glTF2BaseImporterComponent):
             if vnode.type != VNode.Bone:
                 continue
 
-            node: "Node" = gltf.data.nodes[node_idx]
+            node: Node = gltf.data.nodes[node_idx]
 
             # Translation
             translation = [node.translation or [0, 0, 0]]

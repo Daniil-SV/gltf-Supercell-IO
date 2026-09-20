@@ -1,56 +1,57 @@
+from typing import Any, cast
+
 import bpy
-from .importer.patches import flatbuffer_glb, vnodes_compute_patch
-from .exporter.patches import (
-    inverse_bind_matrices_gather,
-    traverse_gather,
-    inline_materials,
-    sampled_armature_keyframes_patch,
-    fcurve_keyframes_patch,
-    primitive_gather_attribute,
-    flat_glb_output,
-    primitive_master_hook,
-    buffer_caching_patch,
-)
-from .com.utilities.patcher import register_patch, unregister_patch
-from .exporter.ui import glTFSupercellExporterProperties
-from .importer.ui import glTFSupercellImporterProperties, glTFSupercellTextureOverride
-from .com.shader.handler import shader_linkage_handler
-from .com.shader.nodes import ShaderNodeScShader, ShaderNodeScUtility, ShaderNodeScNode
+from io_scene_gltf2.blender.imp import scene as gltf_scene
+
 from .com.editor import (
     SHADER_OT_SC_create_shader,
     SHADER_PT_SC_create_shader,
     SHADER_PT_SC_create_utilities,
 )
-from .exporter.ui import draw_export
-from .exporter import glTF2ExportUserExtension as glTF2ExportUserExtension
-from .importer.ui import draw_import as draw_import
-from .importer import glTF2ImportUserExtension as glTF2ImportUserExtension
-from io_scene_gltf2.blender.imp import scene as gltf_scene
-from .com.editor.string_array import (
-    StringItem,
-    DirectoryStringItem,
-    STRING_ARRAY_UL_items,
-    STRING_ARRAY_OT_add,
-    STRING_ARRAY_OT_remove,
-    STRING_ARRAY_STATE,
-)
 from .com.editor.asset_importer import (
+    AssetBrowserItem,
+    AssetBrowserProperties,
     ASSETS_OT_import,
     ASSETS_OT_import_api,
-    ASSETS_PT_panel,
     ASSETS_OT_refresh,
+    ASSETS_PT_panel,
     ASSETS_UL_list,
-    AssetBrowserProperties,
-    AssetBrowserItem,
+    asset_browser_timer,
     cleanup_temporary_files,
     refresh_handler,
-    asset_browser_timer,
     start_asset_worker,
     stop_asset_worker,
 )
-from .importer.scw.operator import ImportSCW, scw_func_import, IO_FH_scw
+from .com.editor.string_array import (
+    STRING_ARRAY_STATE,
+    DirectoryStringItem,
+    STRING_ARRAY_OT_add,
+    STRING_ARRAY_OT_remove,
+    STRING_ARRAY_UL_items,
+    StringItem,
+)
+from .com.shader.handler import shader_linkage_handler
+from .com.shader.nodes import ShaderNodeScNode, ShaderNodeScShader, ShaderNodeScUtility
+from .com.utilities.patcher import register_patch, unregister_patch
+from .exporter import glTF2ExportUserExtension as glTF2ExportUserExtension
+from .exporter.patches import (
+    buffer_caching_patch,
+    fcurve_keyframes_patch,
+    flat_glb_output,
+    inline_materials,
+    inverse_bind_matrices_gather,
+    primitive_gather_attribute,
+    primitive_master_hook,
+    sampled_armature_keyframes_patch,
+    traverse_gather,
+)
+from .exporter.ui import draw_export, glTFSupercellExporterProperties
+from .importer import glTF2ImportUserExtension as glTF2ImportUserExtension
+from .importer.patches import flatbuffer_glb, vnodes_compute_patch
+from .importer.scw.operator import ImportSCW, IO_FH_scw, scw_func_import
+from .importer.ui import draw_import as draw_import
+from .importer.ui import glTFSupercellImporterProperties, glTFSupercellTextureOverride
 from .preferences import SupercellGLTFPreferences
-from typing import cast, Any
 
 classes = [
     # String array panel
@@ -98,13 +99,16 @@ patches_5_2_up = [inline_materials]
 
 
 def register():
-    major, minor, build = bpy.app.version
+    major, minor, _build = bpy.app.version
     for cls in classes:
         bpy.utils.register_class(cls)
 
     for patch in patches:
         register_patch(patch)
-    gltf_scene.compute_vnodes = vnodes_compute_patch.function
+
+    gltf_scene.compute_vnodes = (  # ty: ignore[invalid-assignment]
+        vnodes_compute_patch.function
+    )
 
     if major >= 5 and minor >= 2:
         for patch in patches_5_2_up:
@@ -133,7 +137,9 @@ def register():
         persistent=True,
     )
 
-    bpy.types.TOPBAR_MT_file_import.append(scw_func_import)
+    bpy.types.TOPBAR_MT_file_import.append(
+        scw_func_import  # ty: ignore[invalid-argument-type]
+    )
 
     # Use the following 2 lines to register the UI for this hook
     from io_scene_gltf2 import exporter_extension_layout_draw
@@ -167,4 +173,6 @@ def unregister():
     bpy.app.handlers.load_post.remove(refresh_handler)
     bpy.app.timers.unregister(asset_browser_timer)
 
-    bpy.types.TOPBAR_MT_file_import.remove(scw_func_import)
+    bpy.types.TOPBAR_MT_file_import.remove(
+        scw_func_import  # ty: ignore[invalid-argument-type]
+    )

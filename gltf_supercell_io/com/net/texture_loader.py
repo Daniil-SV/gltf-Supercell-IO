@@ -1,26 +1,26 @@
+import hashlib
+import os
+import tempfile
+from functools import lru_cache
+from io import BytesIO
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import bpy
-import tempfile
-import hashlib
-import os
-from pathlib import Path
-from io import BytesIO
-
-from ..editor.asset_importer.helpers import get_version_sha
-from .asset_request import AssetRequest, download_asset_detailed
 from neko_web_api_client import Client
 from neko_web_api_client.api.assets import post_v1_texture_png
 from neko_web_api_client.api.default import post_v1_cdn
 from neko_web_api_client.models import (
+    AssetDescribeType,
+    AssetsInputBody,
     AssetsReferenceResponse,
     ErrorResponse,
     ImageConverterLoaders,
-    AssetsInputBody,
-    AssetDescribeType,
 )
 from neko_web_api_client.types import File
-from functools import lru_cache
+
+from ..editor.asset_importer.helpers import get_version_sha
+from .asset_request import AssetRequest, download_asset_detailed
 
 if TYPE_CHECKING:
     from ..editor.asset_importer import AssetBrowserProperties
@@ -31,7 +31,6 @@ client = Client(base_url="https://api.sc-workshop.com")
 
 
 def _fetch_texture_data(low: str, high: str) -> bytes | None:
-    global client
     if not bpy.app.online_access:
         return None
 
@@ -66,7 +65,6 @@ def _handle_response(
 
 @lru_cache(maxsize=5)
 def _convert_texture_cached(name: str, game: str, version: str) -> bytes | None:
-    global client
 
     hash = get_version_sha(version)
     temp_texture_path = os.path.join(tempdir, hash, name + ".png")
@@ -130,7 +128,6 @@ def convert_texture(name: str) -> bytes | None:
 
 @lru_cache(maxsize=5)
 def convert_user_texture(name: str, buffer: bytes) -> bytes | None:
-    global client
     texture_hash = hashlib.md5(buffer)
     temp_texture_path = os.path.join(tempdir, texture_hash.hexdigest())
 

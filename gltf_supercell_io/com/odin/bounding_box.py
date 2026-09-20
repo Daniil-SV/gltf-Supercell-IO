@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Self
+
+import numpy as np
 
 
 class BoundingBox:

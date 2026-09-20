@@ -1,5 +1,7 @@
 import struct
+
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
 from ...com.flatbuffer import deserialize_glb_json
 from ...com.utilities.patcher import Patch
 
@@ -12,7 +14,8 @@ def load_glb(self: "glTFImporter", content: bytes):
 
     version, file_size = struct.unpack_from("<II", content, offset=4)
     if version != 2:
-        raise ImportError("GLB version must be 2; got %d" % version)
+        raise ImportError(f"GLB version must be 2; got {version}")
+
     if file_size != len(content):
         raise ImportError("Bad GLB: file size doesn't match")
 

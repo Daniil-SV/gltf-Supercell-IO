@@ -1,28 +1,25 @@
-import bpy
-
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from typing import TYPE_CHECKING, List
-from .component import glTF2BaseImporterComponent, requires_extension
+import bpy
+from io_scene_gltf2.blender.imp.node import VNode
+from io_scene_gltf2.io.com.gltf2_io import (
+    Accessor,
+    Animation,
+    Material,
+    Scene,
+    Skin,
+)
 
 from ...com import glTF_extension_name, glTF_material_extension_name
 from ...com.utilities.accessor import MemoryAccessor
-from io_scene_gltf2.blender.imp.vnode import VNode
-
-from io_scene_gltf2.io.com.gltf2_io import (
-    Material,
-    Scene,
-    Animation,
-    Skin,
-    Accessor,
-)
+from .component import glTF2BaseImporterComponent, requires_extension
 
 if TYPE_CHECKING:
-    from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
     from io_scene_gltf2.io.com.gltf2_io import (
         Node,
     )
-    from io_scene_gltf2.blender.imp.node import VNode
+    from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
 
 
 class CommonImporter(glTF2BaseImporterComponent):
@@ -41,7 +38,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         # 2 - Float Vector 4 (?)
         # 3 - Skinning inverse bind matrix
 
-        accessors: List[Accessor] = gltf.data.accessors or []
+        accessors: list[Accessor] = gltf.data.accessors or []
         for accessor in accessors:
             if not isinstance(accessor, Accessor):
                 continue
@@ -72,7 +69,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         Repairs gltf children relation indexing based on classic parent indexing stored in node extensions
         """
 
-        nodes: List["Node"] = gltf.data.nodes or []
+        nodes: list[Node] = gltf.data.nodes or []
 
         childrens: dict[int, list[int]] = {}
 
@@ -128,10 +125,11 @@ class CommonImporter(glTF2BaseImporterComponent):
         for i, skin in enumerate(skins):
             joints: list[int] = skin.joints or []
 
-            def visit(idx: int):
-                node: "Node" = gltf.data.nodes[idx]
+            def visit(idx: int, target: int = i):
+                nonlocal i
+                node: Node = gltf.data.nodes[idx]
                 if node.skin is None:
-                    node.skin = i
+                    node.skin = target
 
                 if node.name:
                     self.bone_nodes.add(node.name)
@@ -166,7 +164,7 @@ class CommonImporter(glTF2BaseImporterComponent):
 
         # Check each node until we found mesh or bone
         def visit(idx: int) -> bool:
-            node: "Node" = gltf.data.nodes[idx]
+            node: Node = gltf.data.nodes[idx]
 
             if idx in skin_joints:
                 return True
@@ -192,7 +190,7 @@ class CommonImporter(glTF2BaseImporterComponent):
             if has_any_joint:
                 seen_skin = True
 
-        # Sort children's aright after gathering data
+        # Sort children's right after gathering data
         if requires_reoder:
             for idx in range(len(gltf.data.nodes or [])):
                 node = gltf.data.nodes[idx]
@@ -277,7 +275,7 @@ class CommonImporter(glTF2BaseImporterComponent):
 
     def fix_node_tree(self, gltf: "glTFImporter"):
         root_nodes = []
-        nodes: List["Node"] = gltf.data.nodes
+        nodes: list[Node] = gltf.data.nodes
         skins = gltf.data.skins = gltf.data.skins or []
 
         # Fix for scene and root nodes definition
@@ -303,7 +301,7 @@ class CommonImporter(glTF2BaseImporterComponent):
         # Some of root nodes may has scale(0, 0, 0) for some fucking reason
         # Which is obviously wrong and which is cause for bones calculation errors later
         for node_idx in root_nodes:
-            node: "Node" = gltf.data.nodes[node_idx]
+            node: Node = gltf.data.nodes[node_idx]
             if node.scale == [0, 0, 0]:
                 node.scale = None
 
@@ -422,10 +420,6 @@ class CommonImporter(glTF2BaseImporterComponent):
         if self.properties.better_settings:
             self.setup_settings(gltf)
 
-        # Shared cache for all meshes import operations
-        gltf.supercell_vertex_cache = {}  # type: ignore
-        gltf.supercell_vertex_accessor_offset = 0  # type: ignore
-
     @requires_extension
     def gather_import_node_before_hook(self, vnode, node, gltf):
         if node is None:
@@ -434,16 +428,15 @@ class CommonImporter(glTF2BaseImporterComponent):
         # Some nodes (especially in animation files) may have invalid indices,
         # we need to clean them up to avoid errors
         meshes_count = len(gltf.data.meshes or [])
-        if node.mesh is not None:
-            if node.mesh >= meshes_count:
-                node.mesh = None
-                vnode.type = VNode.DummyRoot
-                vnode.mesh_node_idx = None
+        if node.mesh is not None and node.mesh >= meshes_count:
+            node.mesh = None
+            vnode.type = VNode.DummyRoot
+            vnode.mesh_node_idx = None
 
     @requires_extension
-    def gather_import_scene_after_nodes_hook(self, gltf_scene, blender_scene, gltf):
+    def gather_import_scene_after_nodes_hook(self, _gltf_scene, blender_scene, gltf):
         if self.properties.adjust_colorspace:
-            blender_scene.view_settings.view_transform = "Raw"  # type: ignore
+            blender_scene.view_settings.view_transform = "Raw"
 
     def decode_accessor_before_hook(
         self,

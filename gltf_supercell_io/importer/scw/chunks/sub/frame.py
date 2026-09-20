@@ -1,7 +1,9 @@
-from .. import ScwChunk, BinaryReader
-from typing import Self
 from dataclasses import dataclass, field
+from typing import Self
+
 from mathutils import Quaternion, Vector
+
+from .. import BinaryReader, ScwChunk
 
 
 @dataclass
@@ -15,11 +17,14 @@ class ScwFrame(ScwChunk):
         self,
         br: "BinaryReader",
         flags=0,
-        structs: list[Self] = [],
+        structs: list[Self] | None = None,
         index=0,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
+        if structs is None:
+            structs = []
+
         if index == 0:
             flags = 0xFF
             base_frame = ScwFrame()

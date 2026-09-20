@@ -1,15 +1,16 @@
-from .reader import OdinAnimationReader
-from .rawReader import OdinRawAnimationReader
-from .packedReader import OdinPackedReader
-from .rlePackedReader import OdinRlePackedReader
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
+from .packed_reader import OdinPackedReader
+from .raw_reader import OdinRawAnimationReader
+from .reader import OdinAnimationReader
+from .rle_reader import OdinRlePackedReader
 
 
 class OdinAnimation:
     """
     Supercell odin animation reader
-    The implementation of this class completely diverges from the real one 
-    in favor of such a design in order to support all versions of 
+    The implementation of this class completely diverges from the real one
+    in favor of such a design in order to support all versions of
     odin animation that used by Supercell
     """
 

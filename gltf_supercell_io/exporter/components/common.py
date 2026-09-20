@@ -1,9 +1,11 @@
+from typing import TYPE_CHECKING
+
+from io_scene_gltf2.io.com.constants import ComponentType
+from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+
+from ...com import glTF_extension_name, glTF_material_extension_name
 from ..patches.buffers import clear_buffer_cache
 from .component import glTF2BaseExporterComponent, requires_extension, to_dict
-from ...com import glTF_material_extension_name, glTF_extension_name
-from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
-from io_scene_gltf2.io.com.constants import ComponentType
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.com.gltf2_io import Gltf

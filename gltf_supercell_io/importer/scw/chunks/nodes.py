@@ -1,12 +1,12 @@
-from . import ScwChunk, BinaryReader
-from .sub.node import ScwNode
-from typing import Tuple
 from dataclasses import dataclass
+
+from . import BinaryReader, ScwChunk
+from .sub.node import ScwNode
 
 
 @dataclass
 class ScwNodes(ScwChunk):
-    nodes: Tuple[ScwNode, ...] = ()
+    nodes: tuple[ScwNode, ...] = ()
 
     def __br_read__(self, br: BinaryReader, version=-1, *args, **kwargs) -> None:
         nodes_count = br.read_uint16()

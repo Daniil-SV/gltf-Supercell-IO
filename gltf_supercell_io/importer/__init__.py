@@ -1,14 +1,14 @@
-from ..com import glTF_extension_name, glTF_material_extension_name
-from .components.component import glTF2BaseImporterComponent
-from ..com.utilities.mixin import MixinClass
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
-from .components.common import CommonImporter
-from .components.mesh import OdinMeshImporter
+from ..com import glTF_extension_name, glTF_material_extension_name
+from ..com.utilities.mixin import MixinClass
 from .components.animation import OdinAnimationImporter
-from .components.materials import SupercellShaderImporter
-from .components.skin import SkinImporter
 from .components.animation_retarget import AnimationImporter
+from .components.common import CommonImporter
+from .components.component import glTF2BaseImporterComponent
+from .components.materials import SupercellShaderImporter
+from .components.mesh import OdinMeshImporter
+from .components.skin import SkinImporter
 
 
 class glTF2ImportUserExtension(

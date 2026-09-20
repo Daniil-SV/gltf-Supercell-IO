@@ -1,11 +1,11 @@
-import bpy
 import os
-
-from bpy.types import ShaderNodeTree
 from typing import TYPE_CHECKING
 
+import bpy
+from bpy.types import ShaderNodeTree
+
 if TYPE_CHECKING:
-    from .nodes import ShaderNodeScNode, ShaderNodeScUtility, ShaderNodeScShader
+    from .nodes import ShaderNodeScNode, ShaderNodeScShader, ShaderNodeScUtility
 
 
 class LibraryLoader:
@@ -20,7 +20,7 @@ class LibraryLoader:
             with bpy.data.libraries.load(
                 LibraryLoader.LibraryPath, link=True, assets_only=True
             ) as (  # type: ignore
-                data_from,
+                _data_from,
                 data_to,
             ):
                 data_to.node_groups = [id]
@@ -36,16 +36,17 @@ class LibraryLoader:
 
     @staticmethod
     def instantiate_node(type_id: str, node_tree: ShaderNodeTree, tree_id: str):
-        shader: ShaderNodeScNode = node_tree.nodes.new(type_id)  # type: ignore # noqa
+        shader: ShaderNodeScNode = node_tree.nodes.new(
+            type_id
+        )  # ty: ignore[invalid-assignment]
         shader.tree_id = tree_id
-
         return shader
 
     @staticmethod
     def instantiate_utility(
         node_tree: ShaderNodeTree, tree_id: str
     ) -> "ShaderNodeScUtility":
-        return LibraryLoader.instantiate_node("ShaderNodeScUtility", node_tree, tree_id)  # type: ignore # noqa
+        return LibraryLoader.instantiate_node("ShaderNodeScUtility", node_tree, tree_id)
 
     @staticmethod
     def instantiate_shader(
@@ -53,7 +54,7 @@ class LibraryLoader:
     ) -> "ShaderNodeScShader":
         shader: ShaderNodeScShader = LibraryLoader.instantiate_node(
             "ShaderNodeScShader", node_tree, tree_id
-        )  # type: ignore # noqa
+        )
         shader.preset_id = tree_id
 
         return shader

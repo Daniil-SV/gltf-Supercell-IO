@@ -1,6 +1,7 @@
 import bpy
+from bpy.props import BoolProperty, StringProperty
 from bpy.types import PropertyGroup
-from bpy.props import StringProperty, BoolProperty
+
 from ..com import glTF_extension_name
 
 

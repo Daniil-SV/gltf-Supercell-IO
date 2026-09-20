@@ -1,11 +1,13 @@
+from typing import TYPE_CHECKING
+
 import bpy
 import numpy as np
-from ...com.utilities.patcher import Patch
 from io_scene_gltf2.blender.exp.primitive_attributes import __gather_attribute
-from ...com.odin.attribute import OdinRawVertexAttribute
-from ...com.odin.constants import OdinAttributeType, OdinAttributeFormat
 from io_scene_gltf2.io.com.constants import ComponentType, DataType
-from typing import TYPE_CHECKING
+
+from ...com.odin.attribute import OdinRawVertexAttribute
+from ...com.odin.constants import OdinAttributeFormat, OdinAttributeType
+from ...com.utilities.patcher import Patch
 
 if TYPE_CHECKING:
     from ..ui import glTFSupercellExporterProperties
@@ -60,18 +62,15 @@ def gather_skins(blender_primitive, export_settings):
             # Check whether any discarded influence has a non-zero weight.
             discarded_weights = weights[:, influence_count:]
 
-            if np.any(discarded_weights):
-                if not export_settings["warning_joint_weight_exceed_already_displayed"]:
-                    export_settings["log"].warning(
-                        "There are more than {} joint vertex influences. "
-                        "The {} with highest weight will be used (and normalized).".format(
-                            influence_count,
-                            influence_count,
-                        )
-                    )
-                    export_settings["warning_joint_weight_exceed_already_displayed"] = (
-                        True
-                    )
+            if (
+                np.any(discarded_weights)
+                and not export_settings["warning_joint_weight_exceed_already_displayed"]
+            ):
+                export_settings["log"].warning(
+                    f"There are more than {influence_count} joint vertex influences. "
+                    f"The {influence_count} with highest weight will be used (and normalized)."
+                )
+                export_settings["warning_joint_weight_exceed_already_displayed"] = True
 
             weights[:, influence_count:] = 0.0
             joints[:, influence_count:] = 0
@@ -105,13 +104,13 @@ def gather_skins(blender_primitive, export_settings):
 
 
 def gather_primitive_attributes(blender_primitive, export_settings: dict):
-    props: "glTFSupercellExporterProperties" = bpy.context.scene.glTFSupercellExporterProperties  # type: ignore
+    props: glTFSupercellExporterProperties = bpy.context.scene.glTFSupercellExporterProperties  # type: ignore
 
     attributes = {}
     skin_done = False
 
     for name, attribute in blender_primitive["attributes"].items():
-        skin_attribute = name.startswith("JOINTS_") or name.startswith("WEIGHTS_")
+        skin_attribute = name.startswith(("JOINTS_", "WEIGHTS_"))
 
         if skin_attribute and skin_done is True:
             continue

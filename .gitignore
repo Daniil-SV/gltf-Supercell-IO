@@ -1,5 +1,8 @@
 __pycache__
-.vscode/
+.vscode/*
+!.vscode/settings.json
 dist/
 *.blend1
-    
+/neko/*
+/gltf_supercell_io/wheels
+/requirements-wheels.txt

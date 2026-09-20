@@ -1,10 +1,12 @@
-import bpy
+import struct
 import sys
 import traceback
+
+import bpy
 from io_scene_gltf2.blender.exp.export import __write_file as base_write_file
+
 from ...com.flatbuffer import serialize_glb_json
 from ...com.utilities.patcher import Patch
-import struct
 
 
 def save_gltf(gltf: dict, export_settings: dict, glb_buffer: bytes):
@@ -14,39 +16,38 @@ def save_gltf(gltf: dict, export_settings: dict, glb_buffer: bytes):
         export_settings["log"].error(
             "Odin output supports binary files only! Please, change gltf format to binary in your export settings, or disable Supercell export plugin"
         )
+        return
 
-    else:
-        file = open(export_settings["gltf_filepath"], "wb")
+    binary = glb_buffer
 
-        binary = glb_buffer
+    length_gltf = len(gltf_data)
+    spaces_gltf = (4 - (length_gltf & 3)) & 3
+    length_gltf += spaces_gltf
 
-        length_gltf = len(gltf_data)
-        spaces_gltf = (4 - (length_gltf & 3)) & 3
-        length_gltf += spaces_gltf
+    length_bin = len(binary)
+    zeros_bin = (4 - (length_bin & 3)) & 3
+    length_bin += zeros_bin
 
-        length_bin = len(binary)
-        zeros_bin = (4 - (length_bin & 3)) & 3
-        length_bin += zeros_bin
+    length = 12 + 8 + length_gltf
+    if length_bin > 0:
+        length += 8 + length_bin
 
-        length = 12 + 8 + length_gltf
-        if length_bin > 0:
-            length += 8 + length_bin
-
+    with open(export_settings["gltf_filepath"], "wb") as file:
         # Header (Version 2)
-        file.write("glTF".encode())
+        file.write(b"glTF")
         file.write(struct.pack("I", 2))
         file.write(struct.pack("I", length))
 
         # Chunk 0 (FLA2)
         file.write(struct.pack("I", length_gltf))
-        file.write("FLA2".encode())
+        file.write(b"FLA2")
         file.write(gltf_data)
         file.write(b" " * spaces_gltf)
 
         # Chunk 1 (BIN)
         if length_bin > 0:
             file.write(struct.pack("I", length_bin))
-            file.write("BIN\0".encode())
+            file.write(b"BIN\0")
             file.write(binary)
             file.write(b"\0" * zeros_bin)
 
@@ -68,12 +69,12 @@ def write_file(json, buffer, export_settings):
         traceback.print_tb(tb)  # Fixed format
         tb_info = traceback.extract_tb(tb)
         for tbi in tb_info:
-            filename, line, func, text = tbi
+            _filename, line, _func, text = tbi
             export_settings["log"].error(
-                "An error occurred on line {} in statement {}".format(line, text)
+                f"An error occurred on line {line} in statement {text}"
             )
         export_settings["log"].error(str(e))
-        raise e
+        raise
 
 
 flat_glb_output = Patch(

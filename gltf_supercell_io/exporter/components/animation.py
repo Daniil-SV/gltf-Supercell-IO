@@ -1,29 +1,34 @@
+from math import ceil, floor, sqrt
+from typing import TYPE_CHECKING
+
 import bpy
 import numpy as np
-from io_scene_gltf2.io.com.constants import ComponentType, DataType
-from io_scene_gltf2.io.com.gltf2_io import Node, Animation
-
 from io_scene_gltf2.blender.exp.accessors import array_to_accessor
-from .component import glTF2BaseExporterComponent, requires_odin, to_dict
+from io_scene_gltf2.io.com.constants import ComponentType, DataType
+from io_scene_gltf2.io.com.gltf2_io import Animation, Node
+
 from ...com import glTF_extension_name
-from ...com.odin.animation_flags import OdinAnimationFlags
 from ...com.odin.animation import (
-    TRANSLATION_CHANNELS,
     ROTATION_CHANNELS,
     SCALE_CHANNELS,
-    Animation as OdinAnimation,
+    TRANSLATION_CHANNELS,
     PackedAnimationDescriptor,
+)
+from ...com.odin.animation import (
+    Animation as OdinAnimation,
+)
+from ...com.odin.animation import (
     AnimationNode as OdinAnimationNode,
 )
-from math import sqrt, floor, ceil
-from typing import TYPE_CHECKING
+from ...com.odin.animation_flags import OdinAnimationFlags
+from .component import glTF2BaseExporterComponent, requires_odin, to_dict
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.com.gltf2_io import (
-        AnimationSampler,
+        Accessor,
         AnimationChannel,
         AnimationChannelTarget,
-        Accessor,
+        AnimationSampler,
     )
 
 TRANSLATION = "translation"
@@ -187,8 +192,8 @@ class AnimationExporter(glTF2BaseExporterComponent):
 
         source: dict[str, tuple[np.ndarray, np.ndarray]] = {}
         for path, channel in channels.items():
-            timestamps: "Accessor" = channel.input
-            output: "Accessor" = channel.output
+            timestamps: Accessor = channel.input
+            output: Accessor = channel.output
 
             timestamps_data = decode_accessor(timestamps)
             output_data = decode_accessor(output)
@@ -265,12 +270,16 @@ class AnimationExporter(glTF2BaseExporterComponent):
             # It seems that this node is static
             # We could just assign base animation values to node's properties
             if init_translation is not None:
-                node.translation = [float(init_translation[i]) for i in range(TRANSLATION_CHANNELS)]
+                node.translation = [
+                    float(init_translation[i]) for i in range(TRANSLATION_CHANNELS)
+                ]
             else:
                 node.translation = None
 
             if init_rotation is not None:
-                node.rotation = [float(init_rotation[i]) for i in range(ROTATION_CHANNELS)]
+                node.rotation = [
+                    float(init_rotation[i]) for i in range(ROTATION_CHANNELS)
+                ]
             else:
                 node.rotation = None
 
@@ -491,9 +500,9 @@ class AnimationExporter(glTF2BaseExporterComponent):
         nodes: dict[int, dict[str, "AnimationSampler"]],
     ):
         # Gathering node channels
-        channels: list["AnimationChannel"] = animation.channels
+        channels: list[AnimationChannel] = animation.channels
         for channel in channels:
-            target: "AnimationChannelTarget" = channel.target
+            target: AnimationChannelTarget = channel.target
 
             if target is None or target.node is None:
                 print(f"Animation target is invalid {target} / {target.path}. Skip...")
@@ -510,14 +519,14 @@ class AnimationExporter(glTF2BaseExporterComponent):
             key = id(target.node)
             node_refs.setdefault(key, target.node)
             node_channels = nodes.setdefault(key, {})
-            sampler: "AnimationSampler" = animation.samplers[channel.sampler]
+            sampler: AnimationSampler = animation.samplers[channel.sampler]
 
-            node_channels[target.path] = sampler  # type: ignore
+            node_channels[target.path] = sampler
 
     @requires_odin
     def gather_gltf_hook(self, active_scene_idx, scenes, animations, export_settings):
-        node_refs: dict[int, "Node"] = {}
-        nodes: dict[int, dict[str, "AnimationSampler"]] = {}
+        node_refs: dict[int, Node] = {}
+        nodes: dict[int, dict[str, AnimationSampler]] = {}
 
         # Extracting every channel from every animation of glb
         for animation in animations:

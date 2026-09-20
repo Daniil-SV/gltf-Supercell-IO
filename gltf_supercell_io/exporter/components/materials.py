@@ -1,14 +1,34 @@
 import bpy
+from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
+from ...com import glTF_extension_name, glTF_material_extension_name
+from ...com.shader.exporter import ShaderExporter
+from ...com.shader.nodes import ShaderNodeScShader, ShaderNodeScUtility
+from ...com.utilities.shader import ShaderUtils
 from .component import glTF2BaseExporterComponent, requires_extension
 
-from ...com.utilities.shader import ShaderUtils
-from ...com.shader.nodes import ShaderNodeScShader, ShaderNodeScUtility
-from ...com.shader.exporter import ShaderExporter
-from ...com import glTF_material_extension_name, glTF_extension_name
 
-from io_scene_gltf2.blender.exp.material.search_node_tree import get_material_nodes
-from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+def get_material_nodes(node_tree: bpy.types.NodeTree, group_path, type):
+    """
+    For a given tree, recursively return all nodes including node groups.
+    """
+
+    nodes = []
+    for node in [n for n in node_tree.nodes if isinstance(n, type) and not n.mute]:
+        nodes.append((node, group_path.copy()))
+
+    groups: list[bpy.types.ShaderNodeGroup] = [
+        node for node in nodes if node is isinstance(node, bpy.types.ShaderNodeGroup)
+    ]
+    for node in groups:
+        if node.node_tree is None or node.mute:
+            continue
+
+        new_group_path = group_path.copy()
+        new_group_path.append(node)
+        nodes.extend(get_material_nodes(node.node_tree, new_group_path, type))
+
+    return nodes
 
 
 def check_if_is_linked_to_active_output(
@@ -23,10 +43,10 @@ def check_if_is_linked_to_active_output(
         # If we are entering a node group
         if link.to_node.type == "GROUP" or is_modifier:
             socket_name = link.to_socket.name
-            sockets = [
+            sockets = next(
                 n for n in link.to_node.node_tree.nodes if n.type == "GROUP_INPUT"
-            ][0].outputs
-            socket = [s for s in sockets if s.name == socket_name][0]
+            ).outputs
+            socket = next(s for s in sockets if s.name == socket_name)
             new_group_path = group_path.copy()
             new_group_path.append(link.to_node)
 
@@ -46,7 +66,7 @@ def check_if_is_linked_to_active_output(
         if link.to_node.type == "GROUP_OUTPUT":
             socket_name = link.to_socket.name
             sockets = group_path[-1].outputs
-            socket = [s for s in sockets if s.name == socket_name][0]
+            socket = next(s for s in sockets if s.name == socket_name)
             new_group_path = group_path[:-1]
             # TODOSNode : Why checking outputs[0] ? What about alpha for texture node, that is outputs[1] ????
             # recursive until find an output material node

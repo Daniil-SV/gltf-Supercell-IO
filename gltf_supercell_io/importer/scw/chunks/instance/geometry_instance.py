@@ -1,5 +1,6 @@
-from . import ScwInstance, BinaryReader
 from dataclasses import dataclass, field
+
+from . import BinaryReader, ScwInstance
 
 
 @dataclass

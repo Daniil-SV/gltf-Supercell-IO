@@ -1,4 +1,5 @@
 import bpy
+
 from .helpers import get_game_items, get_version_items
 from .operator import ASSETS_OT_refresh
 
@@ -12,19 +13,19 @@ class AssetBrowserProperties(bpy.types.PropertyGroup):
     search: bpy.props.StringProperty(
         name="Search",
         default="",
-        update=lambda self, ctx: ASSETS_OT_refresh.safe_refresh(ctx),
+        update=lambda _self, ctx: ASSETS_OT_refresh.safe_refresh(ctx),
     )
 
     game: bpy.props.EnumProperty(
         name="Game",
         items=get_game_items,
-        update=lambda self, ctx: ASSETS_OT_refresh.safe_refresh(ctx),
+        update=lambda _self, ctx: ASSETS_OT_refresh.safe_refresh(ctx),
     )
 
     version: bpy.props.EnumProperty(
         name="Version",
         items=get_version_items,
-        update=lambda self, ctx: ASSETS_OT_refresh.safe_refresh(ctx),
+        update=lambda _self, ctx: ASSETS_OT_refresh.safe_refresh(ctx),
     )
 
     assets: bpy.props.CollectionProperty(type=AssetBrowserItem)

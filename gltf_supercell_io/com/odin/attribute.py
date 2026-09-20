@@ -1,8 +1,10 @@
+from dataclasses import dataclass, field
+
+import numpy as np
+from io_scene_gltf2.io.com.constants import ComponentType
+
 from .constants import OdinAttributeFormat as Format
 from .constants import OdinAttributeType as Type
-from dataclasses import dataclass, field
-from io_scene_gltf2.io.com.constants import ComponentType
-import numpy as np
 
 
 @dataclass
@@ -96,7 +98,7 @@ class OdinAttributeReader:
         return array
 
     def __getitem__(self, value: int | np.ndarray):
-        if isinstance(value, int) or isinstance(value, np.integer):
+        if isinstance(value, (int, np.integer)):
             index = int(value)
             offset = self.offset + (self.stride * index) + self.element_offset
             return self.read(offset)

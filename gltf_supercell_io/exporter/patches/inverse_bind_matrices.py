@@ -1,13 +1,16 @@
 import bpy
+from io_scene_gltf2.blender.exp.accessors import gather_accessor
+from io_scene_gltf2.io.com.constants import ComponentType, DataType
+from io_scene_gltf2.io.exp.binary_data import BinaryData
 from mathutils import Matrix, Vector
 
-from io_scene_gltf2.blender.exp.accessors import gather_accessor
-from io_scene_gltf2.io.exp.binary_data import BinaryData
-from io_scene_gltf2.io.com.constants import ComponentType, DataType
 from ...com.utilities.patcher import Patch
 
 
-def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
+def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict | None = None):
+    if export_settings is None:
+        export_settings = {}
+
     blender_armature_object = (
         export_settings["vtree"].nodes[armature_uuid].blender_object
     )
@@ -69,8 +72,8 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
     # flatten the matrices
     inverse_matrices = []
     for matrix in matrices:
-        for column in range(0, 4):
-            for row in range(0, 4):
+        for column in range(4):
+            for row in range(4):
                 inverse_matrices.append(matrix[row][column])
 
     binary_data = BinaryData.from_list(inverse_matrices, ComponentType.Float)
@@ -80,7 +83,7 @@ def inverse_bind_matrices_hook(armature_uuid: str, export_settings: dict = {}):
         len(inverse_matrices) // DataType.num_elements(DataType.Mat4),
         None,
         None,
-        DataType.Mat4,  # type: ignore
+        DataType.Mat4,
         None,
         export_settings,
     )

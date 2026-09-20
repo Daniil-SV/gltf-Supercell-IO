@@ -1,4 +1,5 @@
 from io_scene_gltf2.blender.exp.exporter import GlTF2Exporter
+
 from ...com.utilities.patcher import Patch
 
 # NOTE: target_method uses the name-mangled identifier "_GlTF2Exporter__traverse"

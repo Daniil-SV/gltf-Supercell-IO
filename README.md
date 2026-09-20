@@ -1,4 +1,5 @@
 <div align="center">
+[![glTF](misc/glTF_logo.png)](https://www.khronos.org/gltf/) [![sc](misc/sc_logo.png)](https://supercell.com/)
 
 # glTF Supercell IO
 

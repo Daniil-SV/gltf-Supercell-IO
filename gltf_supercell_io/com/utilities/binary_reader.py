@@ -3,12 +3,14 @@ __copyright__ = "Copyright 2021, SutandoTsukai181"
 __license__ = "MIT"
 
 import struct
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Flag, IntEnum
-from typing import Generator, Tuple, TypeVar, overload
+from typing import TypeVar, overload
+
 from mathutils import Matrix
 
-FMT = dict()
+FMT = {}
 for c in ["b", "B", "s"]:
     FMT[c] = 1
 for c in ["h", "H", "e"]:
@@ -38,7 +40,6 @@ class BrStruct:
 
     def __init__(self) -> None:
         """If this class will be used with BinaryReader's `read_struct` method, then this method MUST receive zero arguments after `self`.\n"""
-        pass
 
     def __br_read__(self, br: "BinaryReader", *args, **kwargs) -> None:
         """Called once when `BinaryReader.read_struct` is called on this class.\n
@@ -48,7 +49,6 @@ class BrStruct:
         This method can take any number of parameters after the required first parameter.
         The additional arguments corresponding to these parameters should be passed to `BinaryReader.read_struct` after the `count` argument.\n
         """
-        pass
 
 
 T = TypeVar("T", bound=BrStruct)
@@ -82,7 +82,7 @@ class BinaryReader:
     def __enter__(self):
         return self
 
-    def __exit__(self):
+    def __exit__(self, *args, **kwargs):
         self.__buf.release()
 
     def pos(self) -> int:
@@ -167,7 +167,7 @@ class BinaryReader:
     @contextmanager
     def seek_to(
         self, offset: int, whence: Whence = Whence.BEGIN
-    ) -> Generator["BinaryReader", None, None]:
+    ) -> Generator["BinaryReader"]:
         """Same as `seek(offset, whence)`, but can be used with the `with` statement in a new context.\n
         Upon returning to the old context, the original position of the buffer before the `with` statement will be restored.\n
         Will return a reference of the BinaryReader to be used for `as` in the `with` statement.\n
@@ -268,7 +268,7 @@ class BinaryReader:
     @overload
     def read_int64(self, count: None = None) -> int: ...
 
-    def read_int64(self, count: int | None = None) -> int | Tuple[int, ...]:
+    def read_int64(self, count: int | None = None) -> int | tuple[int, ...]:
         """Reads a signed 64-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -282,7 +282,7 @@ class BinaryReader:
     @overload
     def read_uint64(self, count: None = None) -> int: ...
 
-    def read_uint64(self, count=None) -> int | Tuple[int, ...]:
+    def read_uint64(self, count=None) -> int | tuple[int, ...]:
         """Reads an unsigned 64-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -296,7 +296,7 @@ class BinaryReader:
     @overload
     def read_int32(self, count: None = None) -> int: ...
 
-    def read_int32(self, count=None) -> int | Tuple[int, ...]:
+    def read_int32(self, count=None) -> int | tuple[int, ...]:
         """Reads a signed 32-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -310,7 +310,7 @@ class BinaryReader:
     @overload
     def read_uint32(self, count: None = None) -> int: ...
 
-    def read_uint32(self, count=None) -> int | Tuple[int, ...]:
+    def read_uint32(self, count=None) -> int | tuple[int, ...]:
         """Reads an unsigned 32-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -324,7 +324,7 @@ class BinaryReader:
     @overload
     def read_int16(self, count: None = None) -> int: ...
 
-    def read_int16(self, count=None) -> int | Tuple[int, ...]:
+    def read_int16(self, count=None) -> int | tuple[int, ...]:
         """Reads a signed 16-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -338,7 +338,7 @@ class BinaryReader:
     @overload
     def read_uint16(self, count: None = None) -> int: ...
 
-    def read_uint16(self, count=None) -> int | Tuple[int, ...]:
+    def read_uint16(self, count=None) -> int | tuple[int, ...]:
         """Reads an unsigned 16-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -352,7 +352,7 @@ class BinaryReader:
     @overload
     def read_int8(self, count: None = None) -> int: ...
 
-    def read_int8(self, count=None) -> int | Tuple[int, ...]:
+    def read_int8(self, count=None) -> int | tuple[int, ...]:
         """Reads a signed 8-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -366,7 +366,7 @@ class BinaryReader:
     @overload
     def read_uint8(self, count: None = None) -> int: ...
 
-    def read_uint8(self, count=None) -> int | Tuple[int, ...]:
+    def read_uint8(self, count=None) -> int | tuple[int, ...]:
         """Reads an unsigned 8-bit integer.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -380,7 +380,7 @@ class BinaryReader:
     @overload
     def read_bool(self, count: None = None) -> bool: ...
 
-    def read_bool(self, count=None) -> bool | Tuple[bool, ...]:
+    def read_bool(self, count=None) -> bool | tuple[bool, ...]:
         """Reads an unsigned 8-bit boolean value.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -395,7 +395,7 @@ class BinaryReader:
     @overload
     def read_matrix(self, count: None = None) -> Matrix: ...
 
-    def read_matrix(self, count=None) -> Matrix | Tuple[Matrix, ...]:
+    def read_matrix(self, count=None) -> Matrix | tuple[Matrix, ...]:
         """Reads an 4x4 transform matrix.\n
         If count is given, will return a tuple of matrices instead of 1 value.
         """
@@ -415,7 +415,7 @@ class BinaryReader:
     @overload
     def read_float(self, count: None = None) -> float: ...
 
-    def read_float(self, count=None) -> float | Tuple[float, ...]:
+    def read_float(self, count=None) -> float | tuple[float, ...]:
         """Reads a 32-bit float.\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -429,7 +429,7 @@ class BinaryReader:
     @overload
     def read_half_float(self, count: None = None) -> float: ...
 
-    def read_half_float(self, count=None) -> float | Tuple[float, ...]:
+    def read_half_float(self, count=None) -> float | tuple[float, ...]:
         """Reads a 16-bit float (half-float).\n
         If count is given, will return a tuple of values instead of 1 value.
         """
@@ -443,7 +443,7 @@ class BinaryReader:
     @overload
     def read_norm_half_float(self, count: None = None) -> float: ...
 
-    def read_norm_half_float(self, count=None) -> float | Tuple[float, ...]:
+    def read_norm_half_float(self, count=None) -> float | tuple[float, ...]:
         """Reads a normalized 16-bit float (half-float).\n
         If count is given, will return a tuple of values instead of 1 value.
         """

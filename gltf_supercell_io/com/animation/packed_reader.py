@@ -1,10 +1,10 @@
-from typing import List, Tuple
+import numpy as np
+from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
+from ..odin.animation import ROTATION_CHANNELS, SCALE_CHANNELS, TRANSLATION_CHANNELS
 from ..odin.animation_flags import OdinAnimationFlags
 from .reader import OdinAnimationReader
-from ..odin.animation import TRANSLATION_CHANNELS, ROTATION_CHANNELS, SCALE_CHANNELS
-from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
-import numpy as np
 
 
 class OdinPackedReader(OdinAnimationReader):
@@ -12,7 +12,7 @@ class OdinPackedReader(OdinAnimationReader):
         super().__init__(animation)
 
         self.descriptor: dict = animation.get("packed")  # type: ignore
-        self.nodes: List[dict] = self.descriptor.get("nodes")  # type: ignore
+        self.nodes: list[dict] = self.descriptor.get("nodes")  # type: ignore
         self.stride = 12
 
         # Normalized transform values
@@ -53,8 +53,8 @@ class OdinPackedReader(OdinAnimationReader):
     def process_node(self, node_index: int):
         node = self.nodes[node_index]
         flags = self.flags[node_index]
-        total_frame_count = int(node.get("frameCount"))  # type: ignore
-        self.data_size = int(node.get("dataSize", 0))  # type: ignore
+        total_frame_count = int(node.get("frameCount", 0))
+        self.data_size = int(node.get("dataSize", 0))
         self.node_base_data_offset = node_index * self.stride
 
         # Base transform
@@ -83,7 +83,7 @@ class OdinPackedReader(OdinAnimationReader):
             bScale,
             nTranslation,
             nRotation,
-            nScale,  # type: ignore
+            nScale,
         )
 
         self.data.append((translation, rotation, scale))
@@ -94,7 +94,7 @@ class OdinPackedReader(OdinAnimationReader):
         self,
         frame_count: int,
         flags: OdinAnimationFlags,
-        multiplier: Tuple[int, int],
+        multiplier: tuple[int, int],
         bTranslation: list,
         bRotation: list,
         bScale: list,  # Base transform
@@ -192,13 +192,13 @@ class OdinPackedReader(OdinAnimationReader):
         self.transform_index += 1
         return result
 
-    def read_base_translation(self) -> List[int]:
+    def read_base_translation(self) -> list[int]:
         return [self.read_base_value() for _ in range(TRANSLATION_CHANNELS)]
 
-    def read_base_rotation(self) -> List[int]:
+    def read_base_rotation(self) -> list[int]:
         return [self.read_base_value() for _ in range(ROTATION_CHANNELS)]
 
-    def read_base_scale(self) -> List[int]:
+    def read_base_scale(self) -> list[int]:
         return [self.read_base_value() for _ in range(SCALE_CHANNELS)]
 
     def read_base_value(self) -> int:
@@ -207,7 +207,7 @@ class OdinPackedReader(OdinAnimationReader):
         return self.node_base_data[idx]
 
     def read(self):
-        self.keyframe_mapping = [node.get("frameCount") for node in self.nodes]  # type: ignore # noqa
+        self.keyframe_mapping = [node.get("frameCount", 0) for node in self.nodes]
 
         for i in range(len(self.nodes)):
             self.process_node(i)

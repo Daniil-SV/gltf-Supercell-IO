@@ -1,10 +1,10 @@
 from enum import StrEnum
-from .presets.brawlStarsLegacy import BrawlStarsLegacyShaderPreset
-from .presets.unlit import UnlitShaderPreset
-from .presets.bsdf import BsdfShaderPreset
-from .presets.brawlStars import BrawlStarsShaderPreset
-from typing import Type
+
 from .descriptor import ShaderPresetDescriptor
+from .presets.brawlStars import BrawlStarsShaderPreset
+from .presets.brawlStarsLegacy import BrawlStarsLegacyShaderPreset
+from .presets.bsdf import BsdfShaderPreset
+from .presets.unlit import UnlitShaderPreset
 
 
 class ShaderPresetType(StrEnum):
@@ -16,7 +16,7 @@ class ShaderPresetType(StrEnum):
 
 class ShaderPresets:
     @staticmethod
-    def get_preset_by_id(id: str) -> Type[ShaderPresetDescriptor]:
+    def get_preset_by_id(id: str) -> type[ShaderPresetDescriptor]:
         preset = None
         match (id):
             case ShaderPresetType.UNLIT:

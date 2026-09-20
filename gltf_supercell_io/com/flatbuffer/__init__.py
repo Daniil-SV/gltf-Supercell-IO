@@ -1,8 +1,10 @@
-from flatbuffers import flexbuffers, Builder
-from enum import IntEnum
-import numpy as np
 from collections import OrderedDict
+from enum import IntEnum
 from typing import Any
+
+import numpy as np
+from flatbuffers import Builder, flexbuffers
+
 from . import glTF_generated as flat
 
 
@@ -283,7 +285,7 @@ gltf_schema = {
     "scene": int,
 }
 
-#! ---------------- Deserializing ----------------
+# !---------------- Deserializing ----------------
 
 
 def pascal_case(value: str):
@@ -377,8 +379,8 @@ def deserialize_flexbuffer(data: np.ndarray) -> Any:
     data_array = bytearray(data)
     try:
         return flexbuffers.Loads(data_array)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Failed to decode flexbuffers\n{e}")
 
 
 def deserialize_array(buffer: Any, key: str, schema: Any) -> list | None:
@@ -445,7 +447,7 @@ def deserialize_flatbuffer(buffer: Any, schema: Any, clean: bool = False) -> dic
             if struct_buffer is None:
                 continue
 
-            value_data = deserialize_flatbuffer(struct_buffer, schema[key])
+            value_data = deserialize_flatbuffer(struct_buffer, value)
 
         # String-Enum
         elif issubclass(value_type, IntEnum):
@@ -491,7 +493,7 @@ def deserialize_glb_json(data: bytes, clean: bool = False) -> dict:
     return preprocess_data(output, clean)
 
 
-#! ---------------- Serializing ----------------
+# !---------------- Serializing ----------------
 
 
 def serialize_gather(builder: Builder, class_name: str, gather: dict) -> Any:
@@ -563,6 +565,7 @@ def serialize_flatbuffer(builder: Builder, data: dict, schema: Any) -> Any:
     class_type = schema.get("_type")
     if class_type is None:
         raise Exception("Schema must have a _type field")
+
     class_name = class_type.__name__
     for key, value in schema.items():
         if key.startswith("_"):
@@ -596,12 +599,12 @@ def serialize_flatbuffer(builder: Builder, data: dict, schema: Any) -> Any:
         # Array Of Objects
         elif isinstance(value_type, list):
             gather[key_getter] = serialize_array(
-                builder, key_data, schema[key][0], class_name, key_getter
+                builder, key_data, value[0], class_name, key_getter
             )
 
         # Structs
         elif isinstance(value_type, dict):
-            gather[key_getter] = serialize_flatbuffer(builder, key_data, schema[key])
+            gather[key_getter] = serialize_flatbuffer(builder, key_data, value)
 
         # String-Enum
         elif issubclass(value_type, IntEnum):

@@ -1,8 +1,10 @@
+from collections.abc import Sequence
+from typing import Any
+
 from idprop.types import IDPropertyArray
-from typing import Type, Sequence, Any, Tuple
 
 
-def is_typed_array(value: Any, desired_type: Type | Tuple[Type, ...]) -> bool:
+def is_typed_array(value: Any, desired_type: type | tuple[type, ...]) -> bool:
     """
     Determines if the given value is a sequence (list or tuple) of the specified type.
 

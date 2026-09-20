@@ -17,7 +17,7 @@ class ScwNode(ScwChunk):
     frames: tuple[ScwFrame, ...] = ()
 
     def __br_read__(self, br: "BinaryReader", version=-1, *args, **kwargs) -> None:
-        self.name = br.read_str()
+        self.name = br.read_str() or ""
         self.parent = br.read_str()
 
         instances_count = br.read_uint16()
@@ -40,4 +40,6 @@ class ScwNode(ScwChunk):
         if frames_count > 0:
             flags = 0xFF if 0.0 <= version <= 0.25 else br.read_uint8()
 
-            self.frames = br.read_struct(ScwFrame, frames_count, flags=flags)  # TODO: Its way faster to use numpy
+            self.frames = br.read_struct(
+                ScwFrame, frames_count, flags=flags
+            )  # TODO: Its way faster to use numpy

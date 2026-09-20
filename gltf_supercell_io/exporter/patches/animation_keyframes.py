@@ -15,7 +15,6 @@ exporter -- sampled bone keyframes and FCurve keyframes -- and multiply every
 """
 
 import bpy
-from typing import Optional, Tuple
 
 from ...com.utilities.patcher import Patch
 
@@ -76,11 +75,11 @@ def _apply_scale_override_to_keyframes(keyframes, factors):
 
 # Capture the originals before patching. We rely on the io_scene_gltf2
 # addon being already loaded at the time this SC addon is registered.
-from io_scene_gltf2.blender.exp.animation.sampled.armature.keyframes import (  # noqa: E402
-    gather_bone_sampled_keyframes as _orig_sampled_armature_keyframes,
-)
-from io_scene_gltf2.blender.exp.animation.fcurves.keyframes import (  # noqa: E402
+from io_scene_gltf2.blender.exp.animation.fcurves.keyframes import (
     gather_fcurve_keyframes as _orig_fcurve_keyframes,
+)
+from io_scene_gltf2.blender.exp.animation.sampled.armature.keyframes import (
+    gather_bone_sampled_keyframes as _orig_sampled_armature_keyframes,
 )
 
 
@@ -120,9 +119,9 @@ def _patched_sampled_armature_keyframes(
 
 def _patched_fcurve_keyframes(
     obj_uuid: str,
-    channel_group: Tuple,
-    bone: Optional[str],
-    custom_range: Optional[set],
+    channel_group: tuple,
+    bone: str | None,
+    custom_range: set | None,
     extra_mode: bool,
     export_settings,
 ):

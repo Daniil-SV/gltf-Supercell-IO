@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import IntFlag
-from typing import Optional, cast
+from typing import cast
 
 from . import BinaryReader, BrStruct, ScwChunk
 
@@ -91,21 +91,21 @@ class ScwMaterial(ScwChunk):
     diffuse: Texture = field(default_factory=Texture)
     specular: Texture = field(default_factory=Texture)
 
-    stencil_tex: Optional[str] = None
-    normal_tex: Optional[str] = None
+    stencil_tex: str | None = None
+    normal_tex: str | None = None
 
     colorize: Texture = field(default_factory=Texture)
     emission: Texture = field(default_factory=Texture)
 
-    opacity_tex: Optional[str] = None
+    opacity_tex: str | None = None
     opacity: float = 1.0
 
     cutout: float = 0.0
 
-    diffuse_lightmap: Optional[str] = None
-    specular_lightmap: Optional[str] = None
+    diffuse_lightmap: str | None = None
+    specular_lightmap: str | None = None
 
-    baked_lightmap: Optional[str] = None
+    baked_lightmap: str | None = None
     clip_plane: Color = field(default_factory=Color)
     shader_define: ShaderDefine = ShaderDefine.DEFAULT
 
@@ -113,7 +113,7 @@ class ScwMaterial(ScwChunk):
         self.name = br.read_str() or ""
         self.shader = br.read_str() or ""
         self.blend_mode = br.read_uint8()
-        br.read_uint8() # Triangle sorting mode
+        br.read_uint8()  # Triangle sorting mode
         self.ambient = br.read_struct(Color)
         self.diffuse = br.read_struct(Texture)
         self.specular = br.read_struct(Texture)

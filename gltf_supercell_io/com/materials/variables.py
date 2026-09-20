@@ -1,9 +1,10 @@
-from typing import List, Dict
-from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-from io_scene_gltf2.io.com.gltf2_io import Image, Texture
-from ..utilities import typing
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
+
+from io_scene_gltf2.io.com.gltf2_io import Image, Texture
+from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
+from ..utilities import typing
 
 
 class ShaderProperty:
@@ -33,7 +34,10 @@ class ShaderFloatProperty(ShaderProperty):
 class ShaderFloatVectorProperty(ShaderProperty):
     """Shader float vector property"""
 
-    def __init__(self, vector: List[float] = []):
+    def __init__(self, vector: list[float] | None = None):
+        if vector is None:
+            vector = []
+
         if not typing.is_typed_array(vector, (float, int)):
             raise TypeError("Incorrect float array property value type")
 
@@ -49,8 +53,8 @@ class ShaderTextureProperty(ShaderProperty):
 
     def __init__(self, data: str | Texture):
         self.path: str = ""
-        self.keywords: List[str] = []
-        self.texture: Optional[Texture] = None
+        self.keywords: list[str] = []
+        self.texture: Texture | None = None
 
         if isinstance(data, str):
             self.set_path(data)
@@ -101,9 +105,9 @@ class ScShaderVariables:
     """Container class for managing shader properties in a glTF import pipeline"""
 
     def __init__(self):
-        self.properties: Dict[str, ShaderProperty] = OrderedDict()
+        self.properties: dict[str, ShaderProperty] = OrderedDict()
 
-    def from_booleans(self, data: Dict[str, Any]):
+    def from_booleans(self, data: dict[str, Any]):
         """Load boolean properties from dictionary"""
         for key, value in data.items():
             self.properties[key] = ShaderBooleanProperty(value)
@@ -123,7 +127,7 @@ class ScShaderVariables:
     def boolean_properties(self):
         return self.to_dict(ShaderBooleanProperty)
 
-    def from_float_vectors(self, data: Dict[str, Any]):
+    def from_float_vectors(self, data: dict[str, Any]):
         """Load float vector properties from dictionary"""
         for key, value in data.items():
             self.properties[key] = ShaderFloatVectorProperty(value)
@@ -132,7 +136,7 @@ class ScShaderVariables:
     def float_array_properties(self):
         return self.to_dict(ShaderFloatVectorProperty)
 
-    def from_floats(self, data: Dict[str, Any]):
+    def from_floats(self, data: dict[str, Any]):
         """Load float properties from dictionary"""
         for key, value in data.items():
             self.properties[key] = ShaderFloatProperty(value)
@@ -141,7 +145,7 @@ class ScShaderVariables:
     def float_properties(self):
         return self.to_dict(ShaderFloatProperty)
 
-    def from_textures(self, data: Dict[str, Any]):
+    def from_textures(self, data: dict[str, Any]):
         """Load texture properties from dictionary"""
         for key, value in data.items():
             self.properties[key] = ShaderTextureProperty(value)
@@ -150,7 +154,7 @@ class ScShaderVariables:
     def texture_properties(self):
         return self.to_dict(ShaderTextureProperty)
 
-    def from_dict(self, gltf: glTFImporter, data: Dict[str, Any]):
+    def from_dict(self, gltf: glTFImporter, data: dict[str, Any]):
         """Load properties from dictionary"""
         self.properties = OrderedDict()
 

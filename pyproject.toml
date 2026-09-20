@@ -1,0 +1,34 @@
+[project]
+name = "gltf-supercell-io"
+version = "1.1.0"
+description = "glTF Blender IO Plugin for import/export Supercell Odin (.glb) files"
+readme = "README.md"
+requires-python = ">=3.13.0"
+dependencies = [
+    "flatbuffers",
+    "neko-web-api-client",
+]
+
+[dependency-groups]
+dev = [
+    "fake-bpy-module>=20260915",
+    "numpy>=2.4.6",
+    "requests>=2.34.2",
+    "ruff>=0.16.7",
+    "ty>=0.0.81",
+]
+
+[tool.ty.environment]
+extra-paths = ["./extern/gltf/addons"]
+
+[tool.ty.src]
+exclude = ["gltf_supercell_io/com/flatbuffer/glTF_generated.py", "extern/", "neko/"]
+
+[tool.ty.rules]
+invalid-type-form = "ignore"
+
+[tool.ruff.lint]
+ignore = ["TRY002", "BLE001"]
+
+[tool.uv.sources]
+neko-web-api-client = { path = "gltf_supercell_io/wheels/neko_web_api_client-1.0.0-py3-none-any.whl" }

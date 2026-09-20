@@ -1,10 +1,12 @@
+from typing import TYPE_CHECKING
+
 from bpy.types import NodeSocket
+
 from ..descriptor import ShaderPresetDescriptor
-from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ...shader.importer import ShaderImporter
     from ...shader.exporter import ShaderExporter
+    from ...shader.importer import ShaderImporter
 
 CONSTANT_MAP = {
     0: "AMBIENT",
@@ -50,7 +52,7 @@ class BrawlStarsShaderPreset(ShaderPresetDescriptor):
     @staticmethod
     def setup_props(
         shader: "ShaderImporter | ShaderExporter",
-        light_vector: Optional[NodeSocket] = None,
+        light_vector: NodeSocket | None = None,
     ):
         shader.setup_opacity_blending(OPACITY_ENABLE, OPACITY)
 

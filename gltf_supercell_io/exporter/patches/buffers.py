@@ -1,4 +1,5 @@
 from io_scene_gltf2.io.exp.buffer import Buffer
+
 from ...com.utilities.patcher import Patch
 
 __cache: dict = {}

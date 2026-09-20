@@ -1,12 +1,14 @@
 from pathlib import Path
-from .component import glTF2BaseImporterComponent, requires_extension
-from ...com import glTF_material_extension_name, glTF_extension_name
-from ...com.materials import ScShaderMaterial
-from ...com.shader_presets import ShaderPresets
-from ...com.shader.importer import ShaderImporter
-from ...com.editor.asset_importer import ASSETS_OT_import_api
+
 from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
+
+from ...com import glTF_extension_name, glTF_material_extension_name
+from ...com.editor.asset_importer import ASSETS_OT_import_api
+from ...com.materials import ScShaderMaterial
+from ...com.shader.importer import ShaderImporter
+from ...com.shader_presets import ShaderPresets
 from ..scw import ScwFile
+from .component import glTF2BaseImporterComponent, requires_extension
 
 
 class SupercellShaderImporter(glTF2BaseImporterComponent):
@@ -77,7 +79,7 @@ class SupercellShaderImporter(glTF2BaseImporterComponent):
         self, gltf_material, vertex_color: str, gltf
     ):
         extensions = gltf_material.extensions = gltf_material.extensions or {}
-        descriptor: dict | None = extensions.get(glTF_material_extension_name)  # type: ignore
+        descriptor: dict | None = extensions.get(glTF_material_extension_name)
         material_name: str | None = (
             gltf_material.name if descriptor is None else descriptor.get("name")
         )

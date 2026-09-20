@@ -1,5 +1,6 @@
 import os
-from utilities import zip_folder
+
+from common import zip_folder
 
 DIRNAME = os.path.dirname(os.path.abspath(__file__))
 INPUT_FOLDER = os.path.join(DIRNAME, "../", "gltf_image_converter")

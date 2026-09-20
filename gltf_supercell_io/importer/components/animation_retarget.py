@@ -1,11 +1,12 @@
-import bpy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
-from mathutils import Matrix, Vector, Quaternion
-from .component import glTF2BaseImporterComponent, requires_extension
+from typing import TYPE_CHECKING, Any
 
-from io_scene_gltf2.blender.imp.vnode import VNode
+import bpy
 from io_scene_gltf2.blender.imp.animation_utils import make_fcurve
+from io_scene_gltf2.blender.imp.vnode import VNode
+from mathutils import Matrix, Quaternion, Vector
+
+from .component import glTF2BaseImporterComponent, requires_extension
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
@@ -138,6 +139,8 @@ class AnimationImporter(glTF2BaseImporterComponent):
         if target_animation is None:
             target_animation = target.animation_data_create()
 
+        assert target_animation is not None
+
         start, end = self.get_action_range(source)
         rest_offset = self.compute_rest_offset(target)
         bones = self.sort_bones(target)
@@ -155,7 +158,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
         # Intermediate bones (e.g. ":SSC" helpers in target but not in source)
         # are left at rest (matrix_basis = identity), exactly as the
         # constraint+bake approach leaves unconstrained bones at rest.
-        paired_set = set(n for n in bones if n in src_pose.bones)
+        paired_set = {n for n in bones if n in src_pose.bones}
         pairs = [n for n in bones if n in paired_set]
 
         def pose_scale_override(pose_bone):
@@ -222,7 +225,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
         # Cache parents once
         parent_of = {
             n: (
-                target.data.bones[n].parent.name  # type: ignore
+                target.data.bones[n].parent.name
                 if target.data.bones[n].parent
                 else None
             )
@@ -353,14 +356,14 @@ class AnimationImporter(glTF2BaseImporterComponent):
         coords[::2] = frame_indices
         for bone in pairs:
             esc = bpy.utils.escape_identifier(bone)
-            rna_base = 'pose.bones["%s"]' % esc
+            rna_base = f'pose.bones["{esc}"]'
             for i in range(3):
                 coords[1::2] = loc_vals[bone][i]
                 make_fcurve(
                     action,
                     slot,
                     coords,
-                    data_path="%s.location" % rna_base,
+                    data_path=f"{rna_base}.location",
                     index=i,
                     group_name=bone,
                 )
@@ -370,7 +373,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
                     action,
                     slot,
                     coords,
-                    data_path="%s.rotation_quaternion" % rna_base,
+                    data_path=f"{rna_base}.rotation_quaternion",
                     index=i,
                     group_name=bone,
                 )
@@ -380,7 +383,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
                     action,
                     slot,
                     coords,
-                    data_path="%s.scale" % rna_base,
+                    data_path=f"{rna_base}.scale",
                     index=i,
                     group_name=bone,
                 )
@@ -427,7 +430,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
         retarget_armatures.add(gltf_armature.name_full)
 
         success = self.retarget_animation(gltf_armature, self.armature, name)
-        vnodes: dict[Any, VNode] = gltf.vnodes  # type: ignore
+        vnodes: dict[Any, VNode] = gltf.vnodes
 
         if success:
             gltf.import_settings["import_select_created_objects"] = False
@@ -440,7 +443,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
 
                 is_arma = False
                 if hasattr(vnode, "is_arma"):
-                    is_arma = vnode.is_arma  # type: ignore
+                    is_arma = vnode.is_arma
 
                 if not is_arma:
                     continue

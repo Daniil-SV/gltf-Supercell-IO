@@ -1,23 +1,24 @@
-from .component import glTF2BaseExporterComponent, requires_extension, requires_odin
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import numpy as np
-from typing import TYPE_CHECKING
+from io_scene_gltf2.blender.exp.accessors import array_to_accessor
+from io_scene_gltf2.io.com.constants import ComponentType, DataType
+from io_scene_gltf2.io.com.gltf2_io import Accessor
+from io_scene_gltf2.io.com.gltf2_io_extensions import ChildOfRootExtension, Extension
+
 from ...com import glTF_extension_name
-from ...com.odin.constants import OdinAttributeType, OdinAttributeFormat
-from ...com.odin.bounding_box import BoundingBox
+from ...com.materials import ScShaderMaterial
+from ...com.materials.variables import ShaderFloatVectorProperty
 from ...com.odin.attribute import (
+    OdinMeshDataInfo,
     OdinRawVertexAttribute,
     OdinVertexAttribute,
     OdinVertexDescriptor,
-    OdinMeshDataInfo,
 )
-from ...com.materials import ScShaderMaterial
-from ...com.materials.variables import ShaderFloatVectorProperty
-from io_scene_gltf2.io.com.constants import ComponentType, DataType
-from io_scene_gltf2.blender.exp.accessors import array_to_accessor
-from io_scene_gltf2.io.com.gltf2_io_extensions import Extension, ChildOfRootExtension
-from dataclasses import dataclass, field
-from io_scene_gltf2.io.com.gltf2_io import Accessor
+from ...com.odin.bounding_box import BoundingBox
+from ...com.odin.constants import OdinAttributeFormat, OdinAttributeType
+from .component import glTF2BaseExporterComponent, requires_extension, requires_odin
 
 if TYPE_CHECKING:
     from io_scene_gltf2.io.com.gltf2_io import Mesh, MeshPrimitive
@@ -101,9 +102,9 @@ class MeshExporter(glTF2BaseExporterComponent):
         target_type = ComponentType.UnsignedShort
         target_dtype = ComponentType.to_numpy_dtype(target_type)
 
-        primitives: list["MeshPrimitive"] = mesh.primitives or []
+        primitives: list[MeshPrimitive] = mesh.primitives or []
         for primitive in primitives:
-            accessors: dict[str, "Accessor"] = {
+            accessors: dict[str, Accessor] = {
                 name: value
                 for name, value in primitive.attributes.items()
                 if name.startswith("JOINTS_")
@@ -282,9 +283,7 @@ class MeshExporter(glTF2BaseExporterComponent):
             )
             vertex_attributes[id_type] = vertex_attribute
 
-        groups = self.create_odin_vertex_groups(
-            [attribute for attribute in attributes.keys()]
-        )
+        groups = self.create_odin_vertex_groups([attribute for attribute in attributes])
 
         if len(groups) == 0:
             return info
@@ -342,7 +341,7 @@ class MeshExporter(glTF2BaseExporterComponent):
 
         chunks: list[np.ndarray] = []
         signature = []
-        attribute_types = [attribute for attribute in attributes.keys()]
+        attribute_types = [attribute for attribute in attributes]
         skinned = (
             OdinAttributeType.a_boneindex in attribute_types
             and OdinAttributeType.a_boneweights in attribute_types
@@ -394,7 +393,7 @@ class MeshExporter(glTF2BaseExporterComponent):
         )
 
         pool.root_extension = ChildOfRootExtension(
-            ["meshDataInfos"], glTF_extension_name, info, True  # type: ignore
+            ["meshDataInfos"], glTF_extension_name, info, True
         )
         self.pool.append(pool)
         return pool, chunks
@@ -440,7 +439,7 @@ class MeshExporter(glTF2BaseExporterComponent):
         )
 
     def gather_odin_mesh(self, mesh: "Mesh", export_settings: dict):
-        primitives: list["MeshPrimitive"] = mesh.primitives or []
+        primitives: list[MeshPrimitive] = mesh.primitives or []
 
         skinned_mask = 0
         bbox = BoundingBox()

@@ -1,6 +1,7 @@
+from mathutils import Matrix, Quaternion, Vector
+
 from ...com.utilities.patcher import Patch
 from ..components.component import is_valid_scgltf
-from mathutils import Vector, Quaternion, Matrix
 
 
 def move_skinned_meshes(gltf):
@@ -252,13 +253,13 @@ def bake_pose_scale_into_vnodes(gltf):
 
 def compute_vnodes(gltf):
     from io_scene_gltf2.blender.imp.vnode import (
+        calc_bone_matrices,
+        correct_cameras_and_lights,
+        fixup_multitype_nodes,
         init_vnodes,
         mark_bones_and_armas,
-        fixup_multitype_nodes,
-        correct_cameras_and_lights,
         pick_bind_pose,
         prettify_bones,
-        calc_bone_matrices,
     )
 
     init_vnodes(gltf)

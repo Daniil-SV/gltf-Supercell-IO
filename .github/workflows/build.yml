@@ -4,201 +4,405 @@ on:
   push:
     tags:
       - "v*"
+
   workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
 
 env:
   CONVERTER_NAME: gltf_image_converter
   PLUGIN_NAME: gltf_supercell_io
+  UV_LINK_MODE: copy
 
-permissions:
-  contents: write
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.check-tag.outputs.tag }}
-    steps:
-      - name: Check tag
-        id: check-tag
-        run: |
-          if [[ ${{ github.ref }} == refs/tags/v* ]]; then
-            TAG=$(echo ${{ github.ref }} | sed -e "s#refs/tags/##g")
-          else
-            TAG=$(echo ${{ github.sha }} | cut -c1-7)
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-        shell: bash
+  # ---------------------------------------------------------------------------
+  # Prepare
+  # ---------------------------------------------------------------------------
 
-      - name: Create Release Draft
-        id: create-release
-        if: env.ACT != 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.check-tag.outputs.tag }}
-          name: ${{ steps.check-tag.outputs.tag }}
-          draft: true
-          prerelease: false
-          generate_release_notes: true
+  prepare:
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+      mode: ${{ steps.version.outputs.mode }}
+      is_release: ${{ steps.version.outputs.is_release }}
+      is_act: ${{ steps.version.outputs.is_act }}
+      generate_index: ${{ steps.version.outputs.generate_index }}
+
+    steps:
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${ACT:-false}" == "true" ]]; then
+            IS_ACT=true
+          else
+            IS_ACT=false
+          fi
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${TAG#v}"
+            MODE="release"
+            IS_RELEASE=true
+          else
+            TAG="${GITHUB_SHA::7}"
+            VERSION="0.0.0-dev.${GITHUB_SHA::7}"
+            MODE="dev"
+            IS_RELEASE=false
+          fi
+
+          if [[ "$IS_RELEASE" == "true" || "$IS_ACT" == "true" ]]; then
+            GENERATE_INDEX=true
+          else
+            GENERATE_INDEX=false
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "is_release=$IS_RELEASE" >> "$GITHUB_OUTPUT"
+          echo "is_act=$IS_ACT" >> "$GITHUB_OUTPUT"
+          echo "generate_index=$GENERATE_INDEX" >> "$GITHUB_OUTPUT"
+
+          echo "Tag:            $TAG"
+          echo "Version:        $VERSION"
+          echo "Mode:           $MODE"
+          echo "Release:        $IS_RELEASE"
+          echo "Generate index: $GENERATE_INDEX"
+
+  # ---------------------------------------------------------------------------
+  # Build Blender plugin
+  # ---------------------------------------------------------------------------
 
   build-plugin:
     runs-on: ubuntu-latest
-    needs: setup
+
+    needs: prepare
+
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.12.17"
           python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
-      - name: Build plugin zip
+      - name: Build neko api
         shell: bash
         run: |
+          set -euo pipefail
+
+          uv run --no-sync python -m scripts.build_api
+
+      - name: Update lockfile for generated wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          uv lock --refresh-package neko-web-api-client
+
+      - name: Build plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+
           mkdir -p dist
-          python scripts/build.py
 
-      - name: Tag zip
+          uv run python -m scripts.build \
+            --mode "${{ needs.prepare.outputs.mode }}"
+
+      - name: Rename plugin archive
         shell: bash
         run: |
-          cd dist
-          mv ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}_${{ needs.setup.outputs.tag }}.zip
-          ls -la
+          set -euo pipefail
 
-      - name: Upload Release Asset
-        if: env.ACT != 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          if ! command -v gh >/dev/null 2>&1; then
-            echo "gh CLI not available, skipping upload"
-            exit 0
+          SOURCE="dist/${PLUGIN_NAME}.zip"
+          TARGET="dist/${PLUGIN_NAME}_${{ needs.prepare.outputs.version }}.zip"
+
+          if [[ ! -f "$SOURCE" ]]; then
+            echo "::error::Plugin archive was not created: $SOURCE"
+            exit 1
           fi
-          gh release upload ${{ needs.setup.outputs.tag }} \
-            dist/${{ env.PLUGIN_NAME }}_${{ needs.setup.outputs.tag }}.zip \
-            --clobber
+
+          mv "$SOURCE" "$TARGET"
+
+          echo "Created:"
+          ls -lh "$TARGET"
+
+      - name: Upload plugin artifact
+        if: needs.prepare.outputs.is_act != 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: plugin
+          path: dist/${{ env.PLUGIN_NAME }}_${{ needs.prepare.outputs.version }}.zip
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Build native image converter
+  #
+  # Currently disabled.
+  # ---------------------------------------------------------------------------
 
   build-converter:
-    if: false  # Temporary disabled, requires - ASTC universal lib build setup on MacOS, flatc installing on Windows, LZHAM proper threading setup on Windows Arm 
+    if: false
+
+    needs: prepare
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
-            arch_suffix: -x64
+            architecture: x64
+            suffix: -x64
+
           - os: windows-11-arm
-            arch_suffix: -arm64
+            architecture: arm64
+            suffix: -arm64
+
           - os: ubuntu-latest
-            arch_suffix: -x64
+            architecture: x64
+            suffix: -x64
+
           - os: macos-latest
-            arch_suffix: ""
+            architecture: arm64
+            suffix: ""
+
     runs-on: ${{ matrix.os }}
-    needs: setup
+
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Clang (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clang
-
-      - name: Install Clang (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          brew install llvm
-          echo "$(brew --prefix llvm)/bin" >> "$GITHUB_PATH"
-
-      - name: Verify Clang (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          which clang clang++
-          clang --version
-          clang++ --version
-
-      - name: Setup CMake/Ninja
-        uses: lukka/get-cmake@latest
-
-      - name: Setup MSVC (Windows only)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
-          arch: ${{ matrix.arch_suffix == '-arm64' && 'arm64' || 'x64' }}
-
-      - name: Configure CMake (Clang + Ninja, Linux/macOS)
-        if: runner.os != 'Windows'
-        run: rm -rf ${{ env.CONVERTER_NAME }}/library/build && cmake -G Ninja -S ${{ env.CONVERTER_NAME }}/library -B ${{ env.CONVERTER_NAME }}/library/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DZSTD_BUILD_SHARED=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-        shell: bash
-
-      - name: Configure CMake (MSVC + Ninja, Windows)
-        if: runner.os == 'Windows'
-        run: rm -rf ${{ env.CONVERTER_NAME }}/library/build && cmake -G Ninja -S ${{ env.CONVERTER_NAME }}/library -B ${{ env.CONVERTER_NAME }}/library/build -DCMAKE_BUILD_TYPE=Release
-        shell: cmd
-
-      - name: Build shared library
-        run: cmake --build ${{ env.CONVERTER_NAME }}/library/build --parallel
-        shell: bash
-
-      - name: Locate and copy shared library to bin
-        shell: bash
-        run: |
-          set -eux
-          BIN="${{ env.CONVERTER_NAME }}/bin"
-          mkdir -p "$BIN"
-          # Ninja is single-config, artifacts land directly in build/
-          FOUND=""
-          for cand in \
-            "${{ env.CONVERTER_NAME }}/library/build/TextureLoader.dll" \
-            "${{ env.CONVERTER_NAME }}/library/build/libTextureLoader.so" \
-            "${{ env.CONVERTER_NAME }}/library/build/libTextureLoader.dylib" \
-            "${{ env.CONVERTER_NAME }}/library/build/TextureLoader.so" \
-            "${{ env.CONVERTER_NAME }}/library/build/TextureLoader.dylib"; do
-            if [ -f "$cand" ]; then FOUND="$cand"; break; fi
-          done
-          if [ -z "$FOUND" ]; then
-            echo "Shared library not found, listing build dir:" && find "${{ env.CONVERTER_NAME }}/library/build" -maxdepth 2 -type f -iname "*textureloader*"
-            exit 1
-          fi
-          # Normalize names to match bin/loader.py expectations
-          case "$FOUND" in
-            *.dll) cp "$FOUND" "$BIN/TextureLoader.dll" ;;
-            *.so)  cp "$FOUND" "$BIN/TextureLoader.so"  ;;
-            *.dylib) cp "$FOUND" "$BIN/TextureLoader.dylib" ;;
-          esac
-          ls -la "$BIN"
+          fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
-      - name: Build converter zip
+      - name: Install build dependencies
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          mkdir -p dist
+          set -euo pipefail
+
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y clang ninja-build
+          else
+            brew install ninja
+          fi
+
+      - name: Configure native build
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build-native \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build-native \
+            --config Release
+
+      - name: Build image converter
+        shell: bash
+        run: |
+          set -euo pipefail
+
           python scripts/build_image_converter.py
 
-      - name: Tag zip with platform
+      - name: Rename converter archive
         shell: bash
         run: |
-          cd dist
-          mv ${{ env.CONVERTER_NAME }}.zip ${{ env.CONVERTER_NAME }}_${{ needs.setup.outputs.tag }}_${{ runner.os }}${{ matrix.arch_suffix }}.zip
-          ls -la
+          set -euo pipefail
 
-      - name: Upload Release Asset
-        if: env.ACT != 'true'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SOURCE="dist/${CONVERTER_NAME}.zip"
+          TARGET="dist/${CONVERTER_NAME}_${{ needs.prepare.outputs.version }}_${{ runner.os }}${{ matrix.suffix }}.zip"
+
+          if [[ ! -f "$SOURCE" ]]; then
+            echo "::error::Converter archive was not created: $SOURCE"
+            exit 1
+          fi
+
+          mv "$SOURCE" "$TARGET"
+
+      - name: Upload converter artifact
+        if: needs.prepare.outputs.is_act != 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: converter-${{ runner.os }}-${{ matrix.architecture }}
+          path: dist/${{ env.CONVERTER_NAME }}_${{ needs.prepare.outputs.version }}_${{ runner.os }}${{ matrix.suffix }}.zip
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Create GitHub release
+  # ---------------------------------------------------------------------------
+
+  release:
+    runs-on: ubuntu-latest
+
+    needs:
+      - prepare
+      - build-plugin
+      - build-converter
+
+    # build-converter is intentionally disabled for now.
+    #
+    # always() is required because build-converter is skipped.
+    if: |
+      always() &&
+      needs.prepare.result == 'success' &&
+      needs.build-plugin.result == 'success' &&
+      needs.prepare.outputs.is_release == 'true'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download plugin artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: plugin
+          path: dist
+
+      - name: Download converter artifacts
+        if: needs.build-converter.result == 'success'
+        uses: actions/download-artifact@v6
+        with:
+          pattern: converter-*
+          path: dist
+          merge-multiple: true
+
+      - name: Show release files
         shell: bash
         run: |
-          if ! command -v gh >/dev/null 2>&1; then
-            echo "gh CLI not available, skipping upload"
+          set -euo pipefail
+
+          find dist -maxdepth 1 -type f -printf '%f\n'
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: ${{ needs.prepare.outputs.tag }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+
+  update-index:
+    runs-on: ubuntu-latest
+
+    needs:
+      - prepare
+      - build-plugin
+      - release
+
+    if: |
+      always() &&
+      needs.prepare.result == 'success' &&
+      needs.build-plugin.result == 'success' &&
+      needs.prepare.outputs.is_release == 'true' &&
+      needs.release.result == 'success'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download plugin artifact
+        uses: actions/download-artifact@v6
+        with:
+          name: plugin
+          path: dist
+
+      - name: Show files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          find dist -maxdepth 1 -type f -printf '%f\n'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.12.17"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Generate index.json
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="dist/${PLUGIN_NAME}_${{ needs.prepare.outputs.version }}.zip"
+
+          if [[ ! -f "$ARCHIVE" ]]; then
+            echo "::error::Plugin archive was not found: $ARCHIVE"
+            exit 1
+          fi
+
+          uv run --no-sync python scripts/build_index.py \
+            --version "${{ needs.prepare.outputs.version }}" \
+            --zip "$ARCHIVE" \
+            --manifest gltf_supercell_io/blender_manifest.toml \
+            --output index.json
+
+      - name: Show generated index
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat index.json
+
+      - name: Commit and push index.json
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+          git add index.json
+
+          if git diff --staged --quiet; then
+            echo "index.json is unchanged"
             exit 0
           fi
-          gh release upload ${{ needs.setup.outputs.tag }} \
-            dist/${{ env.CONVERTER_NAME }}_${{ needs.setup.outputs.tag }}_${{ runner.os }}${{ matrix.arch_suffix }}.zip \
-            --clobber
+
+          git commit \
+            -m "Update index.json for ${{ needs.prepare.outputs.version }}"
+
+          git push origin HEAD:main

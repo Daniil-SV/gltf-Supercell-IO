@@ -1,0 +1,4 @@
+[submodule "extern/gltf"]
+	path = extern/gltf
+	url = https://github.com/khronosgroup/gltf-blender-io
+	branch = blender-v5.2-release

@@ -1,9 +1,10 @@
+import shutil
+import tempfile
 from typing import TYPE_CHECKING, Any, cast
 
 import bpy
-import shutil
-import tempfile
 from bpy.app.handlers import persistent
+
 from ...net.asset_request import (
     AssetRequest,
     clean_asset_fetch_cache,

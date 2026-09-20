@@ -1,16 +1,18 @@
-import bpy
-from mathutils import Vector
 from typing import TYPE_CHECKING, Any
-from .component import glTF2BaseImporterComponent, requires_extension
-from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
-from io_scene_gltf2.blender.imp.vnode import VNode
-from io_scene_gltf2.blender.com.gltf2_blender_math import scale_rot_swap_matrix
-from ...com.utilities.accessor import MemoryAccessor
+
+import bpy
 import numpy as np
+from io_scene_gltf2.blender.com.gltf2_blender_math import scale_rot_swap_matrix
+from io_scene_gltf2.blender.imp.vnode import VNode
+from io_scene_gltf2.io.imp.gltf2_io_binary import BinaryData
+from mathutils import Vector
+
+from ...com.utilities.accessor import MemoryAccessor
+from .component import glTF2BaseImporterComponent, requires_extension
 
 if TYPE_CHECKING:
+    from io_scene_gltf2.io.com.gltf2_io import Node, Scene, Skin
     from io_scene_gltf2.io.imp.gltf2_io_gltf import glTFImporter
-    from io_scene_gltf2.io.com.gltf2_io import Skin, Node, Scene
 
 
 class SkinImporter(glTF2BaseImporterComponent):
@@ -25,15 +27,7 @@ class SkinImporter(glTF2BaseImporterComponent):
         # This is the reason to completely rebuild skin
         # Since this may cause problems like invalid vertex groups or bind pose miscalculation
         joints: list[int] = skin.joints or []
-        unique_joints = set()
-        duplicate_joints = set(
-            x for x in joints if x in unique_joints or unique_joints.add(x)
-        )
-
-        if len(duplicate_joints) != 0:
-            return False
-
-        return True
+        return len(joints) == len(set(joints))
 
     @requires_extension
     def gather_import_mesh_options(
@@ -80,7 +74,7 @@ class SkinImporter(glTF2BaseImporterComponent):
         if self.skin_idx is None or self.skin_idx == -1:
             return
 
-        skins: list["Skin"] = gltf.data.skins or []
+        skins: list[Skin] = gltf.data.skins or []
         target_skin = skins[self.skin_idx]
         joints = target_skin.joints or []
         if self.valid_skin(target_skin):
@@ -104,8 +98,8 @@ class SkinImporter(glTF2BaseImporterComponent):
 
     @requires_extension
     def gather_import_gltf_before_hook(self, gltf):
-        nodes: list["Node"] = gltf.data.nodes or []
-        skins: list["Skin"] = gltf.data.skins or []
+        nodes: list[Node] = gltf.data.nodes or []
+        skins: list[Skin] = gltf.data.skins or []
 
         parents: dict[int, int | None] = {}
 
@@ -118,7 +112,7 @@ class SkinImporter(glTF2BaseImporterComponent):
             for children in node.children or []:
                 visit_scene(children, idx)
 
-        scenes: list["Scene"] = gltf.data.scenes
+        scenes: list[Scene] = gltf.data.scenes
         for scene in scenes or []:
             for idx in scene.nodes or []:
                 visit_scene(idx, None)
@@ -147,7 +141,7 @@ class SkinImporter(glTF2BaseImporterComponent):
                     gltf, skin.inverse_bind_matrices
                 )
 
-            def visit(idx: int, accum: int):
+            def visit(idx: int, accum: int, inv_binds=inv_binds, joints=joints):
                 node = nodes[idx]
 
                 # Handling no-op skin joints
@@ -199,7 +193,7 @@ class SkinImporter(glTF2BaseImporterComponent):
                 armature: bpy.types.Armature = arma_object.data  # type: ignore
 
                 bone_name = vnode.blender_bone_name  # type: ignore
-                bone: bpy.types.Bone = armature.bones[bone_name]  # type: ignore
+                bone: bpy.types.Bone = armature.bones[bone_name]
                 bone.use_deform = (
                     vnode_id in deform_bones and vnode_id not in self.noop_joints
                 )
@@ -253,10 +247,9 @@ class SkinImporter(glTF2BaseImporterComponent):
                     if pb is not None:
                         sx, sy, sz = override
                         pb["scScaleOverride"] = (sx, sy, sz)
-                        pose_scale = (
-                            scale_rot_swap_matrix(vnode.rotation_before)
-                            @ Vector(override)
-                        )
+                        pose_scale = scale_rot_swap_matrix(
+                            vnode.rotation_before
+                        ) @ Vector(override)
                         pb["scPoseScaleOverride"] = tuple(pose_scale)
                         if tr is not None:
                             # tr layout (set in ``bake_pose_scale_into_vnodes``):
