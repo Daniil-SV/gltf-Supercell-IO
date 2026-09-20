@@ -1,0 +1,35 @@
+{
+  "version": "v1",
+  "blocklist": [],
+  "data": [
+    {
+      "schema_version": "1.0.0",
+      "id": "gltf_supercell_io",
+      "name": "glTF Supercell IO",
+      "tagline": "Supercell glTF importer/exporter extension",
+      "version": "1.1.0",
+      "type": "add-on",
+      "maintainer": "DaniilSV <daniilsivacenko@gmail.com>",
+      "license": [
+        "SPDX:GPL-3.0-or-later"
+      ],
+      "blender_version_min": "5.2.0",
+      "website": "https://github.com/Daniil-SV/gltf-Supercell-IO",
+      "permissions": {
+        "files": "Import/export glTF from/to disk",
+        "network": "Asset browser"
+      },
+      "tags": [
+        "Import-Export",
+        "Node",
+        "Pipeline"
+      ],
+      "python_versions": [
+        "3"
+      ],
+      "archive_url": "https://github.com/Daniil-SV/gltf-Supercell-IO/releases/download/v1.1.0/gltf_supercell_io_1.1.0.zip",
+      "archive_size": 1613292,
+      "archive_hash": "sha256:8e4cf4c2a4988056d3c57316906ebee24c12b0fa67c12a5443d0067849046c0c"
+    }
+  ]
+}
