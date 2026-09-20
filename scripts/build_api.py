@@ -1,4 +1,4 @@
-from os import remove, scandir, makedirs
+from os import makedirs, remove, scandir
 from shutil import copy, rmtree
 
 from .common import (

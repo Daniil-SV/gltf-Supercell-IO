@@ -70,12 +70,27 @@ Instead of relying on external command-line tools or multi-step converters, this
 
 ## Installation
 
+1. Launch **Blender 5.2+**.
+2. Navigate to **Edit** ➔ **Preferences** (or press `Ctrl` + `,`).
+3. Select the **Get Extensions** tab.
+4. Click on **Repositories** button at top right place, then click **+** button and then **Add Remote Repository**
+6. Paste `https://raw.githubusercontent.com/Daniil-SV/gltf-Supercell-IO/refs/heads/main/index.json` to **URL**
+ field and press **Create**
+7. Go to **Add-ons** tab, find and activate **glTF Supercell IO** plugin
+
+<details>
+<summary>Legacy install</summary>
+
 1. Go to the **[Releases](https://github.com/Daniil-SV/gltf-Supercell-IO/releases)** section and download the latest `.zip` package.
 2. Launch **Blender 5.2+**.
 3. Navigate to **Edit** ➔ **Preferences** (or press `Ctrl` + `,`).
 4. Select the **Add-ons** / **Get Extensions** tab.
 5. Click the top-right menu icon (⚙️ or dropdown arrow) and select **Install from Disk...**.
 6. Choose the downloaded `.zip` file and activate the plugin.
+
+
+</details>
+
 
 ---
 
