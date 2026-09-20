@@ -7,7 +7,7 @@
       "id": "gltf_supercell_io",
       "name": "glTF Supercell IO",
       "tagline": "Supercell glTF importer/exporter extension",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "type": "add-on",
       "maintainer": "DaniilSV <daniilsivacenko@gmail.com>",
       "license": [
@@ -27,9 +27,9 @@
       "python_versions": [
         "3"
       ],
-      "archive_url": "https://github.com/Daniil-SV/gltf-Supercell-IO/releases/download/v1.1.0/gltf_supercell_io_1.1.0.zip",
-      "archive_size": 1613292,
-      "archive_hash": "sha256:8e4cf4c2a4988056d3c57316906ebee24c12b0fa67c12a5443d0067849046c0c"
+      "archive_url": "https://github.com/Daniil-SV/gltf-Supercell-IO/releases/download/v1.1.1/gltf_supercell_io_1.1.1.zip",
+      "archive_size": 2257783,
+      "archive_hash": "sha256:20ffd7dbcdd4338bc431919f11bb2a42d954255cfc26af398a36e4332597d51c"
     }
   ]
 }
