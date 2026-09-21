@@ -74,9 +74,10 @@ Instead of relying on external command-line tools or multi-step converters, this
 2. Navigate to **Edit** ➔ **Preferences** (or press `Ctrl` + `,`).
 3. Select the **Get Extensions** tab.
 4. Click on **Repositories** button at top right place, then click **+** button and then **Add Remote Repository**
-6. Paste `https://raw.githubusercontent.com/Daniil-SV/gltf-Supercell-IO/refs/heads/main/index.json` to **URL**
+5. Paste `https://raw.githubusercontent.com/Daniil-SV/gltf-Supercell-IO/refs/heads/main/index.json` to **URL**
  field and press **Create**
-7. Go to **Add-ons** tab, find and activate **glTF Supercell IO** plugin
+6. Go to **Add-ons** tab, find and activate **glTF Supercell IO** plugin  
+7. **(Optional)** Go to **System** tab and check **Allow Online Access** to get access to Asset Browser
 
 <details>
 <summary>Legacy install</summary>
