@@ -404,7 +404,7 @@ class AnimationImporter(glTF2BaseImporterComponent):
 
     @requires_extension
     def gather_import_gltf_before_hook(self, gltf):
-        if len(gltf.data.animations or []) > 0:
+        if len(gltf.data.animations or []) > 0 or len(gltf.data.skins or []) > 0:
             self.armature = self.get_selected_armature()
 
     @requires_extension
