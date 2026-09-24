@@ -178,6 +178,8 @@ def decode_accessor(accessor: "Accessor"):
 
 
 class AnimationExporter(glTF2BaseExporterComponent):
+
+    @requires_odin
     def pre_export_hook(self, export_settings):
         if not export_settings["gltf_force_sampling"]:
             print(
