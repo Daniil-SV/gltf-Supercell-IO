@@ -1,6 +1,6 @@
 [project]
 name = "gltf-supercell-io"
-version = "1.1.1"
+version = "1.1.3"
 description = "glTF Blender IO Plugin for import/export Supercell Odin (.glb) files"
 readme = "README.md"
 requires-python = ">=3.13.0"
