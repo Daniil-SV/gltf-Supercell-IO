@@ -400,12 +400,20 @@ class MeshExporter(glTF2BaseExporterComponent):
 
     def finalize_odin_vertices(self):
         buffer_offset = len(self.index_buffer)
+
         for pool in self.pool:
             for descriptor, chunks in zip(
                 pool.info.vertexDescriptors,
                 pool.chunks,
             ):
+                # Align descriptor start to 4 bytes
+                padding = (-buffer_offset) % 4
+                if padding:
+                    self.vertex_buffer += b"\x00" * padding
+                    buffer_offset += padding
+
                 data = np.concatenate(chunks) if chunks else np.empty(0)
+
                 descriptor.offset = buffer_offset
                 buffer_offset += data.nbytes
                 self.vertex_buffer += data.tobytes()
