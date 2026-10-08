@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from enum import IntEnum
 from typing import Any
+from .. import glTF_extension_name, glTF_material_extension_name
 
 import numpy as np
 from flatbuffers import Builder, flexbuffers
@@ -479,8 +480,8 @@ def deserialize_glb_json(data: bytes, clean: bool = False) -> dict:
 
     output = deserialize_flatbuffer(flatbuffer, gltf_schema, clean)
 
-    # supercell has very weird targets
-    # should patch this if any
+    # Supercell has very weird targets
+    # We should replace broken targets with custom property
     for mesh in output.get("meshes", []):
         for primitive in mesh.get("primitives", []):
             if "targets" not in primitive:
@@ -489,6 +490,16 @@ def deserialize_glb_json(data: bytes, clean: bool = False) -> dict:
             targets = primitive.pop("targets")
             extras = primitive["extras"] = primitive.get("extras", {})
             extras["scTargets"] = targets
+
+    # Same with extensions
+    required_extensions = set(output.get("extensionsRequired", []))
+    if glTF_material_extension_name in required_extensions:
+        required_extensions.remove(glTF_material_extension_name)
+
+    output["extensionsUsed"] = list(
+        set(list(required_extensions) + [glTF_extension_name])
+    )
+    output["extensionsRequired"] = list(required_extensions)
 
     return preprocess_data(output, clean)
 
