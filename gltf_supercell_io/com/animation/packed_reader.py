@@ -53,7 +53,7 @@ class OdinPackedReader(OdinAnimationReader):
     def process_node(self, node_index: int):
         node = self.nodes[node_index]
         flags = self.flags[node_index]
-        total_frame_count = int(node.get("frameCount", 0))
+        total_frame_count = int(node.get("frameCount", self.keyframe_count))
         self.data_size = int(node.get("dataSize", 0))
         self.node_base_data_offset = node_index * self.stride
 
@@ -207,7 +207,9 @@ class OdinPackedReader(OdinAnimationReader):
         return self.node_base_data[idx]
 
     def read(self):
-        self.keyframe_mapping = [node.get("frameCount", 0) for node in self.nodes]
+        self.keyframe_mapping = [
+            node.get("frameCount", self.keyframe_count) for node in self.nodes
+        ]
 
         for i in range(len(self.nodes)):
             self.process_node(i)

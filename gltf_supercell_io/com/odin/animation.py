@@ -18,7 +18,7 @@ class AnimationNode:
     flags: OdinAnimationFlags
 
     # Count of animation frames
-    frameCount: int
+    frameCount: int | None
 
     # Reference to animation node
     nodeIndex: Node
@@ -45,10 +45,10 @@ class PackedAnimationDescriptor:
 @dataclass
 class Animation:
     # Animation first frame
-    firstFrame: float
+    firstFrame: float | None
 
     # Animation last frame
-    lastFrame: float
+    lastFrame: float | None
 
     # Animation frame rate
     frameRate: float
