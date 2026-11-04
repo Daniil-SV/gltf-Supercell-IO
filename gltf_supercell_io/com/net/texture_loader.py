@@ -63,9 +63,8 @@ def _handle_response(
     return None
 
 
-@lru_cache(maxsize=5)
+@lru_cache(maxsize=15)
 def _convert_texture_cached(name: str, game: str, version: str) -> bytes | None:
-
     hash = get_version_sha(version)
     temp_texture_path = os.path.join(tempdir, hash, name + ".png")
     os.makedirs(os.path.dirname(temp_texture_path), exist_ok=True)
@@ -76,10 +75,7 @@ def _convert_texture_cached(name: str, game: str, version: str) -> bytes | None:
     except Exception as e:
         print(f'Failed to read texture cache at "{temp_texture_path}"\n{e}')
 
-    path = Path(name)
-    search = f"{path.stem}|{path.suffix}$"
-    request = AssetRequest(search, game_server=game, version=version)
-
+    request = AssetRequest(name, game_server=game, version=version)
     response = post_v1_texture_png.sync(
         client=client,
         request=str(request),
@@ -90,11 +86,26 @@ def _convert_texture_cached(name: str, game: str, version: str) -> bytes | None:
     return _handle_response(response, temp_texture_path)
 
 
+def normalize_name(name: str):
+    props = cast(
+        "AssetBrowserProperties", cast(Any, bpy.context.scene).sc_asset_browser
+    )
+
+    path = Path(name)
+    # Normalize path for textures as the game does
+    if (props.game == "BS" or props.game == "BSCN") and str(path.parent) != "sc3d":
+        path = Path("sc3d") / path
+        name = path.as_posix()
+
+    return name
+
+
 def download_raw_texture(name: str) -> tuple[str, bytes] | None:
     props = cast(
         "AssetBrowserProperties", cast(Any, bpy.context.scene).sc_asset_browser
     )
 
+    name = normalize_name(name)
     hash = get_version_sha(props.version)
     temp_texture_path = os.path.join(tempdir, hash, name)
     os.makedirs(os.path.dirname(temp_texture_path), exist_ok=True)
@@ -123,7 +134,7 @@ def convert_texture(name: str) -> bytes | None:
     props = cast(
         "AssetBrowserProperties", cast(Any, bpy.context.scene).sc_asset_browser
     )
-    return _convert_texture_cached(name, props.game, props.version)
+    return _convert_texture_cached(normalize_name(name), props.game, props.version)
 
 
 @lru_cache(maxsize=5)

@@ -64,7 +64,7 @@ SUPPORTED_NEKO_EXTENSIONS = [".sctx"]
 IMAGE_EXTENSIONS = NATIVE_IMAGE_EXTENSIONS + COMPRESSED_TITAN_IMAGE_EXTENSIONS
 
 # An array of image extensions that can be loaded by Blender and supported by Titan
-NATIVE_TITAN_IMAGE_EXTENSION = [".png"] + COMPRESSED_TITAN_IMAGE_EXTENSIONS
+NATIVE_TITAN_IMAGE_EXTENSION = COMPRESSED_TITAN_IMAGE_EXTENSIONS + [".png"]
 
 NATIVE_NODES = [
     cls
@@ -216,7 +216,11 @@ class ShaderImporter(ShaderUtils):
         if prefs:
             lookups += [string.value for string in prefs.texture_lookup]
 
-        for extension in IMAGE_EXTENSIONS:
+        native_extension = path.suffix
+        extensions = list(IMAGE_EXTENSIONS)
+        extensions.sort(key=lambda extension: extension != native_extension)
+
+        for extension in extensions:
             paths: list[tuple[Path, bool]] = []
             for i, lookup in enumerate(lookups):
                 use_network = i == 0
