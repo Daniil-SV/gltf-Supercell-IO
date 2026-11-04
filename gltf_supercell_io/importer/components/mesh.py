@@ -179,6 +179,12 @@ class OdinMeshImporter(glTF2BaseImporterComponent):
     @requires_extension
     def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
         extensions = gltf_mesh.extensions or {}
+        if "KHR_texture_transform" in gltf.data.extensions_used or []:
+            for uv_layer in blender_mesh.uv_layers:
+                for loop in uv_layer.data:
+                    loop.uv.x *= 1.0 / 4096.0
+                    loop.uv.y = loop.uv.y / 4096.0 + 1.0
+
         odin: dict | None = extensions.get(glTF_extension_name)
         if odin is None:
             return
