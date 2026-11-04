@@ -102,6 +102,11 @@ class SHADER_PT_SC_create_utilities(Panel):
             )
             assert add is not None
 
+            ssuv = self.layout.operator(
+                "supercell.create_tree", text="Create Screen Space UV"
+            )
+            assert ssuv is not None
+
             screen.item_id = "ScScreenModifier"
             screen.item_type = "utility"
             screen.item_label = "Screen"
@@ -113,3 +118,7 @@ class SHADER_PT_SC_create_utilities(Panel):
             add.item_id = "ScAdditiveModifier"
             add.item_type = "utility"
             add.item_label = "Screen"
+
+            ssuv.item_id = "ScAnimatedScreenSpaceUV"
+            ssuv.item_type = "utility"
+            ssuv.item_label = "Screen Space UV"

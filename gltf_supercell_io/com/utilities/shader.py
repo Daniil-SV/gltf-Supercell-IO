@@ -76,7 +76,9 @@ class ShaderUtils:
         return tree
 
     @staticmethod
-    def get_texture_from_socket(name: str, socket: NodeSocket, export_settings: dict):
+    def get_texture_from_socket(
+        name: str, socket: NodeSocket, export_settings: dict
+    ) -> ShaderNodeTexImage | None:
         """Set the texture based on the socket"""
         node_socket = SocketWrapper(socket, [])
         if not ShaderUtils.is_texture_socket(socket, name):

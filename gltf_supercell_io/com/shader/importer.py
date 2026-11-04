@@ -36,6 +36,8 @@ from .loader import LibraryLoader
 if TYPE_CHECKING:
     from ...importer.ui import glTFSupercellImporterProperties
     from ..shader_presets import ShaderPresetDescriptor
+    from .nodes import ShaderNodeScNode, ShaderNodeScShader, ShaderNodeScUtility
+
 
 # An array of image extensions that can be loaded by blender
 NATIVE_IMAGE_EXTENSIONS = [
@@ -518,7 +520,7 @@ class ShaderImporter(ShaderUtils):
 
         return node
 
-    def instantiate_utility(self, id: str, label: str):
+    def instantiate_utility(self, id: str, label: str) -> ShaderNodeScUtility:
         node = LibraryLoader.instantiate_utility(self.tree, id)
 
         node.label = label

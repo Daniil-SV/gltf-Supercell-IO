@@ -186,6 +186,27 @@ class ShaderExporter:
 
         return False
 
+    def get_texture_vector(self, name: str, index: int):
+        node = ShaderUtils.get_texture_from_socket(
+            name, self.shader.inputs[index], self.export_settings
+        )
+
+        if node is None:
+            return
+
+        vector_node = None if node.inputs is None else node.inputs[0]
+        if vector_node is None:
+            return
+
+        if vector_node.is_linked:
+            link = None if vector_node.links is None else vector_node.links[0]
+            if link is None:
+                return
+
+            source_node = link.from_node
+
+            return source_node
+
     def set_surface_color(
         self,
         name: str,
